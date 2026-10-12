@@ -1,0 +1,160 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}我的订单 - 小区管理系统{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4">
+                <i class="fas fa-shopping-cart text-warning"></i> 我的订单
+                <span class="badge bg-info fs-6 ms-3">当前积分：{{ user.points }}</span>
+            </h2>
+        </div>
+    </div>
+
+    {% if page_obj %}
+    <div class="row">
+        {% for order in page_obj %}
+        <div class="col-12 mb-3">
+            <div class="card order-card">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-2 text-center">
+                            <small class="text-muted">订单号：{{ order.order_id }}</small>
+                        </div>
+                        <div class="col-md-4">
+                            <h5 class="card-title">{{ order.product.product_name }}</h5>
+                            <p class="card-text text-muted">{{ order.product.description1|default:"暂无描述" }}</p>
+                        </div>
+                        <div class="col-md-2 text-center">
+                            <div class="fw-bold text-primary fs-5">{{ order.product.points_required }} 积分</div>
+                        </div>
+                        <div class="col-md-2 text-center">
+                            <span class="badge bg-{% if order.payment_status == 'paid' %}success{% elif order.payment_status == 'pending' %}warning{% else %}danger{% endif %} fs-6">
+                                {{ order.get_payment_status_display }}
+                            </span>
+                        </div>
+                        <div class="col-md-2 text-center">
+                            <div class="text-muted small">
+                                <div><i class="fas fa-calendar-alt"></i> {{ order.created_at|date:"Y-m-d" }}</div>
+                                <div><i class="fas fa-clock"></i> {{ order.created_at|date:"H:i" }}</div>
+                                {% if order.payment_time %}
+                                <div class="text-success small mt-1">
+                                    <i class="fas fa-check"></i> {{ order.payment_time|date:"Y-m-d H:i" }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- 分页 -->
+    {% if page_obj.has_other_pages %}
+    <nav aria-label="订单分页">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1">首页</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}">上一页</a>
+                </li>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                    </li>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}">下一页</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">末页</a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+
+    {% else %}
+    <div class="row">
+        <div class="col-12">
+            <div class="alert alert-info text-center">
+                <i class="fas fa-shopping-cart fa-3x mb-3"></i>
+                <h4>还没有订单</h4>
+                <p>您还没有任何兑换记录，快去积分商城兑换商品吧！</p>
+                <a href="{% url 'products_list' %}" class="btn btn-primary">
+                    <i class="fas fa-gift"></i> 去积分商城
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- 图片装饰区域 - 页面底部 -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="bottom-decoration text-center py-4">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <i class="fas fa-gift fa-3x text-primary mb-2"></i>
+                        <h6>积分兑换</h6>
+                        <p class="text-muted small">使用积分兑换心仪商品</p>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <i class="fas fa-shipping-fast fa-3x text-success mb-2"></i>
+                        <h6>快速配送</h6>
+                        <p class="text-muted small">订单处理迅速便捷</p>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <i class="fas fa-medal fa-3x text-warning mb-2"></i>
+                        <h6>品质保证</h6>
+                        <p class="text-muted small">所有商品质量有保障</p>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <i class="fas fa-heart fa-3x text-danger mb-2"></i>
+                        <h6>贴心服务</h6>
+                        <p class="text-muted small">7x24小时客户服务</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.order-card:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    transition: box-shadow 0.3s ease;
+}
+
+.bottom-decoration {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 15px;
+    border: 1px solid #dee2e6;
+}
+
+.bottom-decoration i {
+    transition: transform 0.3s ease;
+}
+
+.bottom-decoration i:hover {
+    transform: scale(1.1);
+}
+</style>
+{% endblock %}

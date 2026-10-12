@@ -1,0 +1,128 @@
+name: community-monitor
+
+services:
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: community
+      MYSQL_USER: community
+      MYSQL_PASSWORD_FILE: /run/secrets/db_password
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/db_root_password
+    secrets: [db_password, db_root_password]
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    logging: &logging
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.web
+    restart: unless-stopped
+    environment:
+      DJANGO_SETTINGS_MODULE: community_project.settings_production
+      DJANGO_SECRET_KEY_FILE: /run/secrets/django_secret_key
+      DJANGO_ALLOWED_HOSTS: ${DOMAIN:?请先运行 python3 init_config.py 配置域名},web,localhost,127.0.0.1
+      DJANGO_CSRF_TRUSTED_ORIGINS: https://${DOMAIN}
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_NAME: community
+      DB_USER: community
+      DB_PASSWORD_FILE: /run/secrets/db_password
+      MEDIA_ROOT: /app/t7/front/public
+      STATIC_ROOT: /data/static
+      AI_INGEST_TOKEN_FILE: /run/secrets/ai_ingest_token
+    secrets: [django_secret_key, db_password, ai_ingest_token]
+    volumes:
+      - media_data:/app/t7/front/public
+      - static_data:/data/static
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:8000/health/', headers={'X-Forwarded-Proto': 'https'}), timeout=5)"]
+      interval: 15s
+      timeout: 8s
+      retries: 10
+      start_period: 30s
+    logging: *logging
+
+  proxy:
+    image: caddy:2
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:?请配置域名}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - static_data:/srv/static:ro
+      - media_data:/srv/media:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+    logging: *logging
+
+  ai:
+    profiles: [ai]
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.ai
+    restart: unless-stopped
+    environment:
+      VIDEO_SOURCE: ${VIDEO_SOURCE:-/input/source.mp4}
+      DEEPSEEK_API_KEY_FILE: /run/secrets/deepseek_api_key
+      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-flash}
+      DJANGO_BASE_URL: http://web:8000
+      AI_INGEST_TOKEN_FILE: /run/secrets/ai_ingest_token
+      AI_STATE_DIR: /data/ai
+      MEDIA_ROOT: /app/t7/front/public
+      AI_HOST: 0.0.0.0
+      AI_PORT: "16532"
+    secrets: [deepseek_api_key, ai_ingest_token]
+    volumes:
+      - ./input:/input:ro
+      - media_data:/app/t7/front/public
+      - ai_data:/data/ai
+    depends_on:
+      web:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:16532/health/', timeout=5)"]
+      interval: 30s
+      timeout: 8s
+      retries: 3
+      start_period: 30s
+    logging: *logging
+
+secrets:
+  django_secret_key:
+    file: ./secrets/django_secret_key.txt
+  db_password:
+    file: ./secrets/db_password.txt
+  db_root_password:
+    file: ./secrets/db_root_password.txt
+  ai_ingest_token:
+    file: ./secrets/ai_ingest_token.txt
+  deepseek_api_key:
+    file: ./secrets/deepseek_api_key.txt
+
+volumes:
+  db_data:
+  media_data:
+  static_data:
+  ai_data:
+  caddy_data:
+  caddy_config:

@@ -1,0 +1,35 @@
+{$DOMAIN} {
+    encode gzip
+    request_body {
+        max_size 105MB
+    }
+    header X-Content-Type-Options nosniff
+
+    # 监控录像由 Django 检查登录权限后返回。
+    handle /static/video/* {
+        uri replace /static/video/ /media/video/
+        reverse_proxy web:8000
+    }
+    handle /video/* {
+        uri replace /video/ /media/video/
+        reverse_proxy web:8000
+    }
+    handle /media/* {
+        reverse_proxy web:8000
+    }
+    handle_path /static/imgs/* {
+        root * /srv/media/imgs
+        file_server
+    }
+    handle_path /static/* {
+        root * /srv/static
+        file_server
+    }
+    handle_path /images/* {
+        root * /srv/static/images
+        file_server
+    }
+    handle {
+        reverse_proxy web:8000
+    }
+}

@@ -1,0 +1,6 @@
+Django==5.2.18
+mysqlclient==2.3.0
+Pillow==12.3.0
+opencv-python-headless==4.14.0.94
+requests==2.34.2
+gunicorn==26.2.0

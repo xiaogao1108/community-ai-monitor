@@ -1,0 +1,301 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}举报信息 - 小区管理系统{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- 页面头部 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <div class="card-body py-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="mb-2">
+                                <i class="fas fa-shield-alt me-2"></i>
+                                举报信息管理
+                            </h2>
+                            <p class="mb-0 opacity-75">维护小区秩序，共建和谐环境</p>
+                        </div>
+                        <a href="{% url 'create_report' %}" class="btn btn-light btn-lg shadow-sm">
+                            <i class="fas fa-plus me-2"></i> 提交举报
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if reports %}
+        <div class="row">
+            <div class="col-12">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white border-0 py-3">
+                        <h5 class="mb-0 text-primary">
+                            <i class="fas fa-list-alt me-2"></i>
+                            举报记录列表
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
+                                    <tr>
+                                        <th class="border-0 py-3 text-muted fw-semibold">
+                                            <i class="fas fa-hashtag me-1"></i>编号
+                                        </th>
+                                        <th class="border-0 py-3 text-muted fw-semibold">
+                                            <i class="fas fa-tag me-1"></i>类型
+                                        </th>
+                                        <th class="border-0 py-3 text-muted fw-semibold">
+                                            <i class="fas fa-comment-alt me-1"></i>原因
+                                        </th>
+                                        <th class="border-0 py-3 text-muted fw-semibold">
+                                            <i class="fas fa-clock me-1"></i>时间
+                                        </th>
+                                        <th class="border-0 py-3 text-muted fw-semibold">
+                                            <i class="fas fa-info-circle me-1"></i>状态
+                                        </th>
+                                        <th class="border-0 py-3 text-muted fw-semibold">
+                                            <i class="fas fa-cogs me-1"></i>操作
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                {% for report in reports %}
+                                    <tr class="border-0">
+                                        <td class="py-3 border-0">
+                                            <span class="badge bg-light text-dark border">#{{ report.report_id }}</span>
+                                        </td>
+                                        <td class="py-3 border-0">
+                                            <span class="badge" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                                                <i class="fas fa-flag me-1"></i>{{ report.get_report_type_display }}
+                                            </span>
+                                        </td>
+                                        <td class="py-3 border-0">
+                                            <div class="text-truncate" style="max-width: 200px;" title="{{ report.reason }}">
+                                                {{ report.reason|truncatechars:50 }}
+                                            </div>
+                                        </td>
+                                        <td class="py-3 border-0 text-muted">
+                                            <i class="fas fa-calendar-alt me-1"></i>
+                                            {{ report.created_at|date:"m-d H:i" }}
+                                        </td>
+                                        <td class="py-3 border-0">
+                                            {% if report.status == 'pending' %}
+                                                <span class="badge rounded-pill" style="background: linear-gradient(135deg, #ffc107 0%, #ff8c00 100%); color: white;">
+                                                    <i class="fas fa-hourglass-half me-1"></i>待处理
+                                                </span>
+                                            {% elif report.status == 'processing' %}
+                                                <span class="badge rounded-pill" style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: white;">
+                                                    <i class="fas fa-spinner me-1"></i>处理中
+                                                </span>
+                                            {% elif report.status == 'resolved' %}
+                                                <span class="badge rounded-pill" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white;">
+                                                    <i class="fas fa-check-circle me-1"></i>已解决
+                                                </span>
+                                            {% elif report.status == 'rejected' %}
+                                                <span class="badge rounded-pill" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white;">
+                                                    <i class="fas fa-times-circle me-1"></i>已拒绝
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="py-3 border-0">
+                                            <button class="btn btn-sm shadow-sm" 
+                                                    style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;"
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#reportModal{{ report.report_id }}">
+                                                <i class="fas fa-eye me-1"></i> 查看详情
+                                            </button>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 分页导航 -->
+        {% if page_obj.has_other_pages %}
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body py-3">
+                        <nav aria-label="举报列表分页">
+                            <ul class="pagination justify-content-center mb-0">
+                                {% if page_obj.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link border-0 shadow-sm me-2" href="?page=1" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                                            <i class="fas fa-angle-double-left me-1"></i> 首页
+                                        </a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link border-0 shadow-sm me-2" href="?page={{ page_obj.previous_page_number }}" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                                            <i class="fas fa-angle-left me-1"></i> 上一页
+                                        </a>
+                                    </li>
+                                {% endif %}
+                                
+                                <li class="page-item">
+                                    <span class="page-link border-0 bg-light text-primary fw-semibold">
+                                        <i class="fas fa-bookmark me-1"></i>
+                                        第 {{ page_obj.number }} 页，共 {{ page_obj.paginator.num_pages }} 页
+                                    </span>
+                                </li>
+                                
+                                {% if page_obj.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link border-0 shadow-sm ms-2" href="?page={{ page_obj.next_page_number }}" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                                            下一页 <i class="fas fa-angle-right ms-1"></i>
+                                        </a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link border-0 shadow-sm ms-2" href="?page={{ page_obj.paginator.num_pages }}" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                                            末页 <i class="fas fa-angle-double-right ms-1"></i>
+                                        </a>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 举报详情模态框 -->
+        {% for report in reports %}
+        <div class="modal fade" id="reportModal{{ report.report_id }}" tabindex="-1" aria-labelledby="reportModalLabel{{ report.report_id }}" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content border-0 shadow">
+                    <div class="modal-header border-0" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                        <h5 class="modal-title fw-semibold" id="reportModalLabel{{ report.report_id }}">
+                            <i class="fas fa-shield-alt me-2"></i>
+                            举报详情 #{{ report.report_id }}
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <div class="row g-4">
+                            <div class="col-md-6">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="fas fa-tag text-primary me-2"></i>
+                                    <h6 class="mb-0 text-primary">举报类型</h6>
+                                </div>
+                                <div class="p-3 bg-light rounded">
+                                    <span class="badge" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                                        {{ report.get_report_type_display }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="fas fa-clock text-primary me-2"></i>
+                                    <h6 class="mb-0 text-primary">提交时间</h6>
+                                </div>
+                                <div class="p-3 bg-light rounded">
+                                    <span class="text-muted">
+                                        <i class="fas fa-calendar-alt me-1"></i>
+                                        {{ report.created_at|date:"Y年m月d日 H:i" }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="fas fa-comment-alt text-primary me-2"></i>
+                                    <h6 class="mb-0 text-primary">举报原因</h6>
+                                </div>
+                                <div class="p-3 bg-light rounded">
+                                    <p class="mb-0 text-muted lh-lg">{{ report.reason|linebreaks }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {% if report.reportvideo_set.exists %}
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="fas fa-video text-primary me-2"></i>
+                                    <h6 class="mb-0 text-primary">相关视频</h6>
+                                </div>
+                                <div class="p-3 bg-light rounded">
+                                    {% for video in report.reportvideo_set.all %}
+                                    <div class="mt-2">
+                                        <video controls class="w-100 rounded" style="max-height: 300px;">
+                                            <source src="{{ video.video_url }}" type="video/mp4">
+                                            您的浏览器不支持视频播放。
+                                        </video>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="fas fa-info-circle text-primary me-2"></i>
+                                    <h6 class="mb-0 text-primary">处理状态</h6>
+                                </div>
+                                <div class="p-3 bg-light rounded">
+                                    {% if report.status == 'pending' %}
+                                        <span class="badge rounded-pill px-3 py-2" style="background: linear-gradient(135deg, #ffc107 0%, #ff8c00 100%); color: white; font-size: 0.9rem;">
+                                            <i class="fas fa-hourglass-half me-1"></i>待处理
+                                        </span>
+                                    {% elif report.status == 'processing' %}
+                                        <span class="badge rounded-pill px-3 py-2" style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: white; font-size: 0.9rem;">
+                                            <i class="fas fa-spinner me-1"></i>处理中
+                                        </span>
+                                    {% elif report.status == 'resolved' %}
+                                        <span class="badge rounded-pill px-3 py-2" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; font-size: 0.9rem;">
+                                            <i class="fas fa-check-circle me-1"></i>已解决
+                                        </span>
+                                    {% elif report.status == 'rejected' %}
+                                        <span class="badge rounded-pill px-3 py-2" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white; font-size: 0.9rem;">
+                                            <i class="fas fa-times-circle me-1"></i>已拒绝
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 bg-light">
+                        <button type="button" class="btn shadow-sm" data-bs-dismiss="modal" style="background: linear-gradient(135deg, #6c757d 0%, #495057 100%); color: white; border: none;">
+                            <i class="fas fa-times me-1"></i> 关闭
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="row">
+            <div class="col-12">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body text-center py-5">
+                        <div class="mb-4">
+                            <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3" 
+                                 style="width: 80px; height: 80px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
+                                <i class="fas fa-inbox fa-2x text-muted"></i>
+                            </div>
+                        </div>
+                        <h4 class="text-muted mb-2">暂无举报记录</h4>
+                        <p class="text-muted mb-4">您还没有提交过任何举报信息，让我们一起维护小区秩序</p>
+                        <a href="{% url 'create_report' %}" class="btn btn-lg shadow-sm" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
+                            <i class="fas fa-plus me-2"></i> 立即提交举报
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

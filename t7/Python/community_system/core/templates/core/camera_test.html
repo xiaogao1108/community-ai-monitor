@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>摄像头稳定性测试 - 小区管理系统</title>
+    <link href="{% static 'css/vendor/bootstrap.min.css' %}" rel="stylesheet">
+    <link href="{% static 'css/vendor/fontawesome/css/all.min.css' %}" rel="stylesheet">
+    <style>
+        .camera-container {
+            position: relative;
+            background: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            overflow: hidden;
+            min-height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .camera-placeholder {
+            text-align: center;
+            color: #6c757d;
+        }
+        
+        .camera-placeholder i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+        
+        #cameraVideo {
+            width: 100%;
+            height: auto;
+            max-height: 500px;
+            object-fit: cover;
+        }
+        
+        .status-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .info-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .info-item h6 {
+            margin-bottom: 0.5rem;
+            opacity: 0.8;
+        }
+        
+        .info-item .value {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        
+        .log-container {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 1rem;
+            height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+        
+        .log-entry {
+            margin-bottom: 0.5rem;
+            padding: 0.25rem 0;
+        }
+        
+        .log-info { color: #0d6efd; }
+        .log-success { color: #198754; }
+        .log-warning { color: #fd7e14; }
+        .log-error { color: #dc3545; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4">
+                    <i class="fas fa-video"></i> 摄像头稳定性测试
+                </h1>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-camera"></i> 摄像头画面
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="camera-container" id="cameraContainer">
+                            <div class="camera-placeholder" id="cameraPlaceholder">
+                                <i class="fas fa-video-slash"></i>
+                                <h4>摄像头未启动</h4>
+                                <p>点击"启动摄像头"开始测试</p>
+                            </div>
+                            <video id="cameraVideo" autoplay muted style="display: none;"></video>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <div class="btn-group w-100" role="group">
+                            <button type="button" class="btn btn-success" id="startBtn" onclick="startCamera()">
+                                <i class="fas fa-play"></i> 启动摄像头
+                            </button>
+                            <button type="button" class="btn btn-danger" id="stopBtn" onclick="stopCamera()" disabled>
+                                <i class="fas fa-stop"></i> 停止摄像头
+                            </button>
+                            <button type="button" class="btn btn-info" id="captureBtn" onclick="capturePhoto()" disabled>
+                                <i class="fas fa-camera"></i> 拍照
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="status-card">
+                    <h5 class="mb-3">
+                        <i class="fas fa-chart-line"></i> 运行状态
+                    </h5>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <h6>状态</h6>
+                            <div class="value" id="status">未启动</div>
+                        </div>
+                        <div class="info-item">
+                            <h6>分辨率</h6>
+                            <div class="value" id="resolution">-</div>
+                        </div>
+                        <div class="info-item">
+                            <h6>FPS</h6>
+                            <div class="value" id="fps">-</div>
+                        </div>
+                        <div class="info-item">
+                            <h6>运行时间</h6>
+                            <div class="value" id="runtime">00:00:00</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="fas fa-list"></i> 运行日志
+                        </h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="log-container" id="logContainer">
+                            <div class="log-entry log-info">系统已就绪，等待启动摄像头...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let cameraStream = null;
+        let cameraStartTime = null;
+        let frameCount = 0;
+        let fpsInterval = null;
+        let runtimeInterval = null;
+        let cameraHealthCheck = null;
+        let logCount = 0;
+
+        // 添加日志
+        function addLog(message, type = 'info') {
+            const logContainer = document.getElementById('logContainer');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            logCount++;
+            
+            // 限制日志数量
+            if (logCount > 100) {
+                logContainer.removeChild(logContainer.firstChild);
+                logCount--;
+            }
+        }
+
+        // 启动摄像头
+        async function startCamera() {
+            try {
+                addLog('正在请求摄像头权限...', 'info');
+                
+                // 请求摄像头权限
+                cameraStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: { ideal: 1280, max: 1920 },
+                        height: { ideal: 720, max: 1080 },
+                        frameRate: { ideal: 30, max: 60 }
+                    },
+                    audio: false
+                });
+                
+                const video = document.getElementById('cameraVideo');
+                const placeholder = document.getElementById('cameraPlaceholder');
+                
+                // 显示视频流
+                video.srcObject = cameraStream;
+                video.style.display = 'block';
+                placeholder.style.display = 'none';
+                
+                // 等待视频加载完成
+                video.onloadedmetadata = () => {
+                    updateStatus('运行中', 'success');
+                    updateResolution(video.videoWidth, video.videoHeight);
+                    
+                    // 启动FPS计算
+                    startFPSCalculation();
+                    
+                    // 启动运行时间计算
+                    cameraStartTime = new Date();
+                    startRuntimeCalculation();
+                    
+                    addLog('摄像头启动成功', 'success');
+                    addLog(`分辨率: ${video.videoWidth}x${video.videoHeight}`, 'info');
+                };
+                
+                // 更新按钮状态
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('stopBtn').disabled = false;
+                document.getElementById('captureBtn').disabled = false;
+                
+                // 监听视频轨道状态
+                const videoTrack = cameraStream.getVideoTracks()[0];
+                if (videoTrack) {
+                    addLog('视频轨道已创建', 'info');
+                    
+                    // 监听轨道结束事件
+                    videoTrack.addEventListener('ended', () => {
+                        addLog('视频轨道意外结束', 'warning');
+                        stopCamera();
+                    });
+                    
+                    // 监听轨道错误事件
+                    videoTrack.addEventListener('error', (error) => {
+                        addLog(`视频轨道错误: ${error.message}`, 'error');
+                        stopCamera();
+                    });
+                    
+                    // 监听轨道静音状态变化
+                    videoTrack.addEventListener('mute', () => {
+                        addLog('视频轨道被静音', 'warning');
+                        stopCamera();
+                    });
+                    
+                    // 监听轨道取消静音
+                    videoTrack.addEventListener('unmute', () => {
+                        addLog('视频轨道取消静音', 'info');
+                    });
+                }
+                
+                // 监听视频元素事件
+                video.addEventListener('error', (error) => {
+                    addLog(`视频播放错误: ${error.message}`, 'error');
+                    stopCamera();
+                });
+                
+                video.addEventListener('pause', () => {
+                    addLog('视频暂停', 'warning');
+                });
+                
+                video.addEventListener('play', () => {
+                    addLog('视频播放', 'info');
+                });
+                
+                // 定期检查摄像头状态
+                cameraHealthCheck = setInterval(() => {
+                    if (cameraStream) {
+                        const tracks = cameraStream.getVideoTracks();
+                        if (tracks.length === 0 || tracks[0].readyState === 'ended') {
+                            addLog('摄像头健康检查失败', 'error');
+                            stopCamera();
+                        } else {
+                            addLog('摄像头健康检查通过', 'info');
+                        }
+                    }
+                }, 10000); // 每10秒检查一次
+                
+            } catch (error) {
+                addLog(`摄像头启动失败: ${error.message}`, 'error');
+                updateStatus('启动失败', 'danger');
+            }
+        }
+
+        // 停止摄像头
+        function stopCamera() {
+            addLog('正在停止摄像头...', 'info');
+            
+            // 清理健康检查定时器
+            if (cameraHealthCheck) {
+                clearInterval(cameraHealthCheck);
+                cameraHealthCheck = null;
+                addLog('健康检查定时器已清理', 'info');
+            }
+            
+            if (cameraStream) {
+                // 停止所有轨道
+                cameraStream.getTracks().forEach(track => {
+                    track.stop();
+                    addLog(`轨道 ${track.label} 已停止`, 'info');
+                });
+                cameraStream = null;
+            }
+            
+            const video = document.getElementById('cameraVideo');
+            const placeholder = document.getElementById('cameraPlaceholder');
+            
+            // 隐藏视频流
+            video.style.display = 'none';
+            placeholder.style.display = 'block';
+            
+            // 更新状态
+            updateStatus('已停止', 'secondary');
+            updateResolution('-', '-');
+            updateFPS('-');
+            updateRuntime('00:00:00');
+            
+            // 停止计算
+            stopFPSCalculation();
+            stopRuntimeCalculation();
+            
+            // 更新按钮状态
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            document.getElementById('captureBtn').disabled = true;
+            
+            addLog('摄像头已停止', 'info');
+        }
+
+        // 拍照功能
+        function capturePhoto() {
+            if (!cameraStream) {
+                addLog('请先启动摄像头', 'warning');
+                return;
+            }
+            
+            const video = document.getElementById('cameraVideo');
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0);
+            
+            const dataURL = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.download = `photo_${new Date().getTime()}.png`;
+            link.href = dataURL;
+            link.click();
+            
+            addLog('拍照完成', 'success');
+        }
+
+        // 更新状态
+        function updateStatus(status, type) {
+            const statusElement = document.getElementById('status');
+            statusElement.textContent = status;
+            statusElement.className = `value text-${type}`;
+        }
+
+        // 更新分辨率
+        function updateResolution(width, height) {
+            const resolutionElement = document.getElementById('resolution');
+            if (width === '-' || height === '-') {
+                resolutionElement.textContent = '-';
+            } else {
+                resolutionElement.textContent = `${width}x${height}`;
+            }
+        }
+
+        // 更新FPS
+        function updateFPS(fps) {
+            const fpsElement = document.getElementById('fps');
+            fpsElement.textContent = fps;
+        }
+
+        // 更新运行时间
+        function updateRuntime(runtime) {
+            const runtimeElement = document.getElementById('runtime');
+            runtimeElement.textContent = runtime;
+        }
+
+        // 启动FPS计算
+        function startFPSCalculation() {
+            frameCount = 0;
+            fpsInterval = setInterval(() => {
+                const fps = frameCount;
+                updateFPS(fps);
+                frameCount = 0;
+            }, 1000);
+            
+            // 监听视频帧来计算FPS
+            const video = document.getElementById('cameraVideo');
+            video.addEventListener('timeupdate', () => {
+                frameCount++;
+            });
+            
+            addLog('FPS计算已启动', 'info');
+        }
+
+        // 停止FPS计算
+        function stopFPSCalculation() {
+            if (fpsInterval) {
+                clearInterval(fpsInterval);
+                fpsInterval = null;
+                addLog('FPS计算已停止', 'info');
+            }
+        }
+
+        // 启动运行时间计算
+        function startRuntimeCalculation() {
+            runtimeInterval = setInterval(() => {
+                if (cameraStartTime) {
+                    const now = new Date();
+                    const diff = now - cameraStartTime;
+                    const hours = Math.floor(diff / 3600000);
+                    const minutes = Math.floor((diff % 3600000) / 60000);
+                    const seconds = Math.floor((diff % 60000) / 1000);
+                    const runtime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                    updateRuntime(runtime);
+                }
+            }, 1000);
+            
+            addLog('运行时间计算已启动', 'info');
+        }
+
+        // 停止运行时间计算
+        function stopRuntimeCalculation() {
+            if (runtimeInterval) {
+                clearInterval(runtimeInterval);
+                runtimeInterval = null;
+                addLog('运行时间计算已停止', 'info');
+            }
+        }
+
+        // 页面加载完成
+        document.addEventListener('DOMContentLoaded', function() {
+            addLog('页面加载完成', 'info');
+            addLog('摄像头测试系统已就绪', 'success');
+        });
+    </script>
+</body>
+</html>
+

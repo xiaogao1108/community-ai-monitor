@@ -1,0 +1,5 @@
+<svg width="300" height="300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="300" height="300" fill="#fce4ec"/>
+  <rect x="100" y="50" width="100" height="200" rx="50" fill="#e91e63"/>
+  <text x="150" y="280" text-anchor="middle" font-family="Arial" font-size="24" fill="#e91e63">保温杯</text>
+</svg>

@@ -1,0 +1,231 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}积分商城 - 小区管理系统{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4">
+                <i class="fas fa-gift text-success"></i> 积分商城
+                {% if request.session.user_id %}
+                <span class="badge bg-primary fs-6 ms-3">我的积分：{{ user_points }}</span>
+                {% endif %}
+            </h2>
+        </div>
+    </div>
+
+    <!-- 搜索和排序 -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <form method="get" class="d-flex">
+                <input type="hidden" name="sort" value="{{ sort_by }}">
+                <input type="text" class="form-control me-2" name="search" placeholder="搜索商品..." value="{{ search }}">
+                <button type="submit" class="btn btn-outline-secondary">
+                    <i class="fas fa-search"></i>
+                </button>
+            </form>
+        </div>
+        <div class="col-md-6">
+            <select class="form-select" id="sortSelect" onchange="changeSortOrder()">
+                <option value="name" {% if sort_by == 'name' %}selected{% endif %}>按名称排序</option>
+                <option value="points_asc" {% if sort_by == 'points_asc' %}selected{% endif %}>积分从低到高</option>
+                <option value="points_desc" {% if sort_by == 'points_desc' %}selected{% endif %}>积分从高到低</option>
+                <option value="date" {% if sort_by == 'date' %}selected{% endif %}>最新上架</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- 商品列表 -->
+    <div class="row">
+        {% for product in page_obj %}
+        <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+            <div class="card product-card h-100">
+                {% if product.image_url %}
+                <div class="product-image-container">
+                    <img src="{{ product.image_url }}" class="card-img-top product-image" alt="{{ product.product_name }}">
+                    <div class="product-overlay">
+                        <div class="product-badge">
+                            <i class="fas fa-coins"></i> {{ product.points_required }}
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="product-image-placeholder">
+                    <i class="fas fa-gift fa-4x text-primary"></i>
+                </div>
+                {% endif %}
+                <div class="card-body text-center">
+                    <h5 class="card-title">{{ product.product_name }}</h5>
+                    <p class="card-text text-primary fw-bold fs-5">
+                        <i class="fas fa-coins text-warning"></i> {{ product.points_required }} 积分
+                    </p>
+                    <p class="card-text text-info fw-bold">
+                        <i class="fas fa-box"></i> 库存：{{ product.quantity }} 件
+                    </p>
+                    {% if product.description1 %}
+                    <p class="card-text text-muted small mb-1">{{ product.description1 }}</p>
+                    {% endif %}
+                    {% if product.description2 %}
+                    <p class="card-text text-muted small">{{ product.description2 }}</p>
+                    {% endif %}
+                </div>
+                <div class="card-footer">
+                    {% if request.session.user_id %}
+                        {% if product.quantity <= 0 %}
+                        <button class="btn btn-danger w-100" disabled>
+                            <i class="fas fa-times-circle"></i> 缺货
+                        </button>
+                        {% elif user_points >= product.points_required %}
+                        <button class="btn btn-success w-100" onclick="exchangeProduct({{ product.product_id }})">
+                            <i class="fas fa-exchange-alt"></i> 立即兑换
+                        </button>
+                        {% else %}
+                        <button class="btn btn-secondary w-100" disabled>
+                            <i class="fas fa-exclamation-triangle"></i> 积分不足
+                        </button>
+                        {% endif %}
+                    {% else %}
+                    <a href="{% url 'login' %}" class="btn btn-primary w-100">
+                        <i class="fas fa-sign-in-alt"></i> 登录兑换
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info text-center">
+                <i class="fas fa-info-circle"></i> 暂无商品信息
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- 分页 -->
+    {% if page_obj.has_other_pages %}
+    <nav aria-label="商品分页">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1&sort={{ sort_by }}&search={{ search }}">首页</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}&sort={{ sort_by }}&search={{ search }}">上一页</a>
+                </li>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}&sort={{ sort_by }}&search={{ search }}">{{ num }}</a>
+                    </li>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}&sort={{ sort_by }}&search={{ search }}">下一页</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}&sort={{ sort_by }}&search={{ search }}">末页</a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+
+<!-- 兑换确认模态框 -->
+<div class="modal fade" id="exchangeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">确认兑换</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>您确定要兑换这个商品吗？</p>
+                <p class="text-muted">兑换后积分将被扣除且无法退回。</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-success" id="confirmExchange">确认兑换</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.product-card:hover {
+    transform: translateY(-5px);
+    transition: transform 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.product-icon {
+    background: linear-gradient(45deg, #f8f9fa, #e9ecef);
+    border-radius: 50%;
+    width: 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+}
+</style>
+
+<script>
+function changeSortOrder() {
+    const sortValue = document.getElementById('sortSelect').value;
+    const url = new URL(window.location);
+    url.searchParams.set('sort', sortValue);
+    url.searchParams.set('page', '1');
+    window.location.href = url.toString();
+}
+
+let currentProductId = null;
+
+function exchangeProduct(productId) {
+    currentProductId = productId;
+    const modal = new bootstrap.Modal(document.getElementById('exchangeModal'));
+    modal.show();
+}
+
+document.getElementById('confirmExchange').addEventListener('click', function() {
+    if (currentProductId) {
+        fetch('{% url "create_order" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}',
+            },
+            body: JSON.stringify({
+                product_id: currentProductId
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('兑换成功！');
+                location.reload();
+            } else {
+                alert('兑换失败：' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('网络错误，请稍后重试');
+        });
+        
+        const modal = bootstrap.Modal.getInstance(document.getElementById('exchangeModal'));
+        modal.hide();
+    }
+});
+</script>
+{% endblock %}

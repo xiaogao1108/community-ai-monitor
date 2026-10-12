@@ -1,0 +1,147 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}公告中心 - 小区管理系统{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4">
+                <i class="fas fa-bullhorn text-primary"></i> 公告中心
+            </h2>
+        </div>
+    </div>
+
+    <!-- 筛选和搜索 -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="btn-group" role="group">
+                <input type="radio" class="btn-check" name="type" id="all" value="all" {% if announcement_type == 'all' %}checked{% endif %}>
+                <label class="btn btn-outline-primary" for="all">全部</label>
+
+                <input type="radio" class="btn-check" name="type" id="community" value="community" {% if announcement_type == 'community' %}checked{% endif %}>
+                <label class="btn btn-outline-primary" for="community">小区公告</label>
+
+                <input type="radio" class="btn-check" name="type" id="legal" value="legal" {% if announcement_type == 'legal' %}checked{% endif %}>
+                <label class="btn btn-outline-primary" for="legal">法律普及</label>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <form method="get" class="d-flex">
+                <input type="hidden" name="type" value="{{ announcement_type }}">
+                <input type="text" class="form-control me-2" name="search" placeholder="搜索公告..." value="{{ search }}">
+                <button type="submit" class="btn btn-outline-secondary">
+                    <i class="fas fa-search"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 公告列表 -->
+    <div class="row">
+        {% for announcement in page_obj %}
+        <div class="col-12 mb-4">
+            <div class="card announcement-card h-100 announcement-clickable" onclick="location.href='{% url 'announcement_detail' announcement.announcement_id %}'">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <h5 class="card-title mb-3">
+                                <a href="{% url 'announcement_detail' announcement.announcement_id %}" class="text-decoration-none stretched-link">
+                                    {{ announcement.title }}
+                                </a>
+                            </h5>
+                            <p class="card-text text-muted mb-3">{{ announcement.content|striptags|truncatechars:200 }}</p>
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div class="text-left">
+                                    <small class="text-dark">
+                                        <i class="fas fa-calendar-alt"></i> {{ announcement.created_at|date:"Y-m-d H:i" }}
+                                    </small>
+                                    {% if announcement.updated_at != announcement.created_at %}
+                                    <small class="ms-3 text-dark">
+                                        <i class="fas fa-edit"></i> {{ announcement.updated_at|date:"Y-m-d H:i" }}
+                                    </small>
+                                    {% endif %}
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-{% if announcement.type == 'community' %}primary{% else %}success{% endif %} fs-6">
+                                        {{ announcement.get_type_display }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 查看详情按钮 - 卡片右下角 -->
+                    <div class="announcement-detail-btn-corner">
+                        <small class="text-primary">
+                            <i class="fas fa-arrow-right"></i> 查看详情
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info text-center">
+                <i class="fas fa-info-circle"></i> 暂无公告信息
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- 分页 -->
+    {% if page_obj.has_other_pages %}
+    <nav aria-label="公告分页">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1&type={{ announcement_type }}&search={{ search }}">首页</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}&type={{ announcement_type }}&search={{ search }}">上一页</a>
+                </li>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}&type={{ announcement_type }}&search={{ search }}">{{ num }}</a>
+                    </li>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}&type={{ announcement_type }}&search={{ search }}">下一页</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}&type={{ announcement_type }}&search={{ search }}">末页</a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+
+<style>
+.announcement-card:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    transition: box-shadow 0.3s ease;
+}
+</style>
+
+<script>
+document.querySelectorAll('input[name="type"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        const url = new URL(window.location);
+        url.searchParams.set('type', this.value);
+        url.searchParams.set('page', '1');
+        window.location.href = url.toString();
+    });
+});
+</script>
+{% endblock %}

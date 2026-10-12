@@ -1,0 +1,145 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}{{ announcement.title }} - 小区管理系统{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-12 mb-3">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'home' %}">首页</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'announcements_list' %}">公告中心</a></li>
+                    <li class="breadcrumb-item active">{{ announcement.title }}</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8 offset-lg-2">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h3 class="mb-2">{{ announcement.title }}</h3>
+                            <div class="text-muted">
+                                <span class="badge bg-{% if announcement.type == 'community' %}primary{% else %}success{% endif %} me-2">
+                                    {{ announcement.get_type_display }}
+                                </span>
+                                <small>
+                                    <i class="fas fa-calendar-alt"></i> 发布时间：{{ announcement.created_at|date:"Y年m月d日 H:i" }}
+                                </small>
+                                {% if announcement.updated_at != announcement.created_at %}
+                                <br>
+                                <small>
+                                    <i class="fas fa-edit"></i> 更新时间：{{ announcement.updated_at|date:"Y年m月d日 H:i" }}
+                                </small>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if announcement.image_url %}
+                    <div class="text-center mb-4">
+                        {% if announcement.image_url|slice:":7" == "/static" %}
+                            <img src="{{ announcement.image_url }}" class="img-fluid rounded" alt="{{ announcement.title }}">
+                        {% else %}
+                            <img src="/static{{ announcement.image_url }}" class="img-fluid rounded" alt="{{ announcement.title }}">
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    
+                    <div class="announcement-content">
+                        {{ announcement.content|safe }}
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'announcements_list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left"></i> 返回列表
+                        </a>
+                        <div class="btn-group">
+                            <button class="btn btn-outline-primary" onclick="window.print()">
+                                <i class="fas fa-print"></i> 打印
+                            </button>
+                            <button class="btn btn-outline-success" onclick="shareAnnouncement()">
+                                <i class="fas fa-share"></i> 分享
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.announcement-content {
+    font-size: 1.1rem;
+    line-height: 1.8;
+    color: #333;
+}
+
+/* 支持HTML内容的样式 */
+.announcement-content p {
+    margin-bottom: 1em;
+    text-align: justify;
+}
+
+.announcement-content p[style*="text-indent"] {
+    text-indent: 2em;
+}
+
+.announcement-content h1,
+.announcement-content h2,
+.announcement-content h3,
+.announcement-content h4,
+.announcement-content h5,
+.announcement-content h6 {
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+    font-weight: bold;
+}
+
+.announcement-content ul,
+.announcement-content ol {
+    margin-bottom: 1em;
+    padding-left: 2em;
+}
+
+.announcement-content blockquote {
+    border-left: 4px solid #007bff;
+    padding-left: 1em;
+    margin: 1em 0;
+    font-style: italic;
+    background-color: #f8f9fa;
+    padding: 1em;
+}
+
+@media print {
+    .navbar, .card-footer, .breadcrumb {
+        display: none !important;
+    }
+}
+</style>
+
+<script>
+function shareAnnouncement() {
+    if (navigator.share) {
+        navigator.share({
+            title: '{{ announcement.title }}',
+            text: '{{ announcement.content|truncatechars:100 }}',
+            url: window.location.href
+        });
+    } else {
+        // 复制链接到剪贴板
+        navigator.clipboard.writeText(window.location.href).then(function() {
+            alert('链接已复制到剪贴板！');
+        });
+    }
+}
+</script>
+{% endblock %}

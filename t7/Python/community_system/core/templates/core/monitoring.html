@@ -1,0 +1,270 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}实时监控 - 小区管理系统{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    {% csrf_token %}
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4">
+                <i class="fas fa-video text-primary"></i> 实时监控
+            </h2>
+        </div>
+    </div>
+
+    <!-- 监控点列表 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list"></i> 监控点列表
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for point in monitoring_points %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card monitoring-point-card">
+                                <div class="card-body text-center">
+                                    <div class="monitoring-status mb-2">
+                                        <i class="fas fa-circle {% if point.status == 'online' %}text-success{% else %}text-danger{% endif %}"></i>
+                                        <span class="{% if point.status == 'online' %}text-success{% else %}text-danger{% endif %}">
+                                            {% if point.status == 'online' %}在线{% else %}离线{% endif %}
+                                        </span>
+                                    </div>
+                                    <h6 class="card-title">{{ point.name }}</h6>
+                                    <p class="card-text text-muted small">{{ point.location }}</p>
+                                    <button class="btn btn-sm btn-primary" onclick="selectMonitoring({{ point.id }}, '{{ point.name }}')"
+                                            {% if point.status == 'offline' %}disabled{% endif %} >
+                                        <i class="fas fa-eye"></i> 查看
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 监控画面显示区域 -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center py-1 px-2">
+                    <h5 class="mb-0" style="font-size: 1rem;">
+                        <i class="fas fa-play-circle"></i> 监控画面
+                    </h5>
+                    <div class="d-flex align-items-center">
+                        <span class="text-muted small me-2">AI 分析由服务器服务运行</span>
+                        <span class="badge bg-info" id="currentMonitoring" style="font-size: 0.8rem; padding: 0.2rem 0.5rem;">请选择监控点</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- 监控画面播放区域 -->
+                    <p class="text-muted small">下方摄像头仅预览本机画面。服务器 AI 分析使用部署配置中的视频源，由服务器服务启动；检测结果显示在异常记录中。</p>
+                    <div class="monitoring-video-area" id="videoArea">
+                        <video id="cameraFeed" autoplay playsinline style="width:100%;height:100%;display:none;"></video>
+                        <div class="no-signal-screen">
+                            <div class="text-center">
+                                <i class="fas fa-video-slash fa-5x text-muted mb-3"></i>
+                                <h4 class="text-muted">暂无信号</h4>
+                                <p class="text-muted">请选择要查看的监控点</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 监控信息面板 -->
+                    <div class="monitoring-info">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="info-item">
+                                    <i class="fas fa-calendar-alt text-primary"></i>
+                                    <span>当前时间</span>
+                                    <div class="info-value" id="currentTime">--</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="info-item">
+                                    <i class="fas fa-signal text-success"></i>
+                                    <span>信号强度</span>
+                                    <div class="info-value">100%</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="info-item">
+                                    <i class="fas fa-eye text-info"></i>
+                                    <span>观看人数</span>
+                                    <div class="info-value">1</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="info-item">
+                                    <i class="fas fa-download text-warning"></i>
+                                    <span>录制状态</span>
+                                    <div class="info-value">进行中</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<style>
+.monitoring-point-card {
+    transition: all 0.3s ease;
+    border-radius: 10px;
+}
+
+.monitoring-point-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.monitoring-status {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.monitoring-video-area {
+    height: 500px;  /* 从原来的400px增加到500px */
+    background: #000;
+    border-radius: 10px;
+    position: relative;
+    overflow: hidden;
+}
+
+.no-signal-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.live-video-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, #1a1a1a 25%, #2d2d2d 25%, #2d2d2d 50%, #1a1a1a 50%, #1a1a1a 75%, #2d2d2d 75%, #2d2d2d);
+    background-size: 20px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: liveStream 2s linear infinite;
+}
+
+@keyframes liveStream {
+    0% { background-position: 0 0; }
+    100% { background-position: 20px 20px; }
+}
+
+.info-item {
+    text-align: center;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.info-item i {
+    font-size: 1.5rem;
+    margin-bottom: 5px;
+}
+
+.info-item span {
+    display: block;
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.info-value {
+    font-weight: bold;
+    font-size: 16px;
+    color: #333;
+}
+
+.live-indicator {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    background: #e74c3c;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 12px;
+    font-weight: bold;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.7; }
+    100% { opacity: 1; }
+}
+</style>
+
+<script>
+function selectMonitoring(pointId, pointName) {
+    // 更新监控点标识
+    document.getElementById('currentMonitoring').textContent = pointName;
+
+    // 获取视频元素
+    const video = document.getElementById('cameraFeed');
+    const noSignalScreen = document.querySelector('.no-signal-screen');
+
+    // 检查浏览器是否支持摄像头
+    if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                video.srcObject = stream;
+                video.style.display = 'block';
+                noSignalScreen.style.display = 'none';
+            })
+            .catch(err => {
+                console.error('摄像头访问错误:', err);
+                alert('无法访问摄像头: ' + err.message);
+            });
+    } else {
+        alert('您的浏览器不支持摄像头功能');
+    }
+}
+
+// 更新当前时间
+function updateTime() {
+    const now = new Date();
+    const timeString = now.toLocaleString('zh-CN');
+    document.getElementById('currentTime').textContent = timeString;
+}
+
+// 每秒更新时间
+setInterval(updateTime, 1000);
+updateTime();
+
+function stopCamera() {
+    const video = document.getElementById('cameraFeed');
+    if (video.srcObject) {
+        video.srcObject.getTracks().forEach(track => track.stop());
+        video.srcObject = null;
+        video.style.display = 'none';
+        document.querySelector('.no-signal-screen').style.display = 'flex';
+    }
+}
+
+</script>
+{% endblock %}

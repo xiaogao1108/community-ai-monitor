@@ -1,0 +1,6 @@
+<svg width="300" height="300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="300" height="300" fill="#f3e5f5"/>
+  <rect x="50" y="60" width="200" height="180" rx="10" fill="#9c27b0"/>
+  <text x="150" y="160" text-anchor="middle" font-family="Arial" font-size="24" fill="white">大米</text>
+  <text x="150" y="190" text-anchor="middle" font-family="Arial" font-size="16" fill="white">10kg装</text>
+</svg>

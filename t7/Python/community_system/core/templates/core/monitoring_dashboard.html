@@ -1,0 +1,719 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}AI监控仪表板 - 小区管理系统{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>
+                    <i class="fas fa-video text-primary"></i>
+                    AI监控仪表板
+                </h2>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-primary" onclick="refreshData()">
+                        <i class="fas fa-sync-alt"></i> 刷新数据
+                    </button>
+                    <a href="{% url 'abnormal_records_list' %}" class="btn btn-outline-danger">
+                        <i class="fas fa-exclamation-triangle"></i> 异常记录
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI系统状态 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-robot"></i> AI监控系统状态
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center">
+                                {% if ai_status.status == 'online' %}
+                                <span class="badge badge-success me-3">
+                                    <i class="fas fa-circle"></i> 在线
+                                </span>
+                                <span class="text-success">{{ ai_status.message }}</span>
+                                {% elif ai_status.status == 'offline' %}
+                                <span class="badge badge-danger me-3">
+                                    <i class="fas fa-circle"></i> 离线
+                                </span>
+                                <span class="text-danger">{{ ai_status.message }}</span>
+                                {% else %}
+                                <span class="badge badge-warning me-3">
+                                    <i class="fas fa-circle"></i> 异常
+                                </span>
+                                <span class="text-warning">{{ ai_status.message }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="text-end">
+                                <small class="text-muted">
+                                    <i class="fas fa-link"></i> 
+                                    AI系统地址: {{ ai_system_url }}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 统计信息 -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-primary">{{ total_abnormal }}</h3>
+                    <p class="text-muted mb-0">总异常记录</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-warning">{{ today_abnormal }}</h3>
+                    <p class="text-muted mb-0">今日异常</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-success" id="online-cameras">6</h3>
+                    <p class="text-muted mb-0">在线摄像头</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 最近异常记录 -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-triangle text-danger"></i>
+                        最近异常记录
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_abnormal %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>异常类型</th>
+                                    <th>异常原因</th>
+                                    <th>检测时间</th>
+                                    <th>视频</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for abnormal in recent_abnormal %}
+                                <tr>
+                                    <td>{{ abnormal.abnormal_id }}</td>
+                                    <td>
+                                        <span class="badge badge-danger">{{ abnormal.abnormal_type }}</span>
+                                    </td>
+                                    <td>{{ abnormal.reason|truncatechars:50 }}</td>
+                                    <td>{{ abnormal.created_at|date:"Y-m-d H:i:s" }}</td>
+                                    <td>
+                                        {% if abnormal.abnormalvideo_set.exists %}
+                                        <span class="badge badge-info">
+                                            <i class="fas fa-video"></i> 有视频
+                                        </span>
+                                        {% else %}
+                                        <span class="text-muted">无视频</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'abnormal_detail' abnormal.abnormal_id %}" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i> 查看
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-shield-alt fa-3x mb-3"></i>
+                        <p>暂无异常记录</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 实时监控区域 -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-video text-info"></i>
+                            实时摄像头监控
+                        </h5>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-success" id="startCameraBtn" onclick="startCamera()">
+                                <i class="fas fa-play"></i> 启动监控
+                            </button>
+                            <button type="button" class="btn btn-danger" id="stopCameraBtn" onclick="stopCamera()" disabled>
+                                <i class="fas fa-stop"></i> 停止监控
+                            </button>
+                            <button type="button" class="btn btn-info" id="captureBtn" onclick="capturePhoto()" disabled>
+                                <i class="fas fa-camera"></i> 拍照
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="camera-container">
+                                <video id="cameraVideo" autoplay muted style="width: 100%; max-height: 400px; background: #000; border-radius: 8px; display: none;"></video>
+                                <div id="cameraPlaceholder" class="camera-placeholder">
+                                    <div class="text-center py-5">
+                                        <i class="fas fa-video fa-3x text-muted mb-3"></i>
+                                        <p class="text-muted">点击"启动监控"开始摄像头监控</p>
+                                        <small class="text-muted">
+                                            使用您电脑的摄像头进行实时监控
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="monitoring-info">
+                                <h6><i class="fas fa-info-circle"></i> 监控信息</h6>
+                                <div class="info-item">
+                                    <strong>状态:</strong> <span id="cameraStatus" class="text-muted">未启动</span>
+                                </div>
+                                <div class="info-item">
+                                    <strong>分辨率:</strong> <span id="cameraResolution" class="text-muted">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <strong>FPS:</strong> <span id="cameraFPS" class="text-muted">-</span>
+                                </div>
+                                <div class="info-item">
+                                    <strong>运行时间:</strong> <span id="cameraRuntime" class="text-muted">-</span>
+                                </div>
+                                <hr>
+                                <h6><i class="fas fa-camera"></i> 最近拍照</h6>
+                                <div id="recentPhotos" class="recent-photos">
+                                    <p class="text-muted small">暂无拍照记录</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 摄像头控制变量
+let cameraStream = null;
+let cameraStartTime = null;
+let frameCount = 0;
+let fpsInterval = null;
+let runtimeInterval = null;
+let cameraHealthCheck = null;
+
+// 自动刷新数据
+let refreshInterval;
+
+function refreshData() {
+    // 刷新页面数据
+    location.reload();
+}
+
+function startAutoRefresh() {
+    // 每30秒自动刷新一次
+    refreshInterval = setInterval(refreshData, 30000);
+}
+
+function stopAutoRefresh() {
+    if (refreshInterval) {
+        clearInterval(refreshInterval);
+    }
+}
+
+// 启动摄像头
+async function startCamera() {
+    try {
+        // 请求摄像头权限
+        cameraStream = await navigator.mediaDevices.getUserMedia({
+            video: {
+                width: { ideal: 1280, max: 1920 },
+                height: { ideal: 720, max: 1080 },
+                frameRate: { ideal: 30, max: 60 }
+            },
+            audio: false
+        });
+        
+        const video = document.getElementById('cameraVideo');
+        const placeholder = document.getElementById('cameraPlaceholder');
+        
+        // 显示视频流
+        video.srcObject = cameraStream;
+        video.style.display = 'block';
+        placeholder.style.display = 'none';
+        
+        // 等待视频加载完成
+        video.onloadedmetadata = () => {
+            // 更新状态
+            updateCameraStatus('运行中', 'success');
+            updateCameraResolution(video.videoWidth, video.videoHeight);
+            
+            // 启动FPS计算
+            startFPSCalculation();
+            
+            // 启动运行时间计算
+            cameraStartTime = new Date();
+            startRuntimeCalculation();
+            
+            console.log('摄像头启动成功');
+        };
+        
+        // 更新按钮状态
+        document.getElementById('startCameraBtn').disabled = true;
+        document.getElementById('stopCameraBtn').disabled = false;
+        document.getElementById('captureBtn').disabled = false;
+        
+        // 监听视频轨道状态
+        const videoTrack = cameraStream.getVideoTracks()[0];
+        if (videoTrack) {
+            // 监听轨道结束事件 - 添加重试机制
+            videoTrack.addEventListener('ended', () => {
+                console.log('视频轨道意外结束，尝试重新启动');
+                // 延迟重试，避免频繁重启
+                setTimeout(() => {
+                    if (!cameraStream || cameraStream.getVideoTracks().length === 0) {
+                        console.log('尝试重新启动摄像头');
+                        stopCamera();
+                        setTimeout(startCamera, 2000);
+                    }
+                }, 3000);
+            });
+            
+            // 监听轨道错误事件 - 添加重试机制
+            videoTrack.addEventListener('error', (error) => {
+                console.error('视频轨道错误:', error);
+                // 不立即停止，先尝试恢复
+                setTimeout(() => {
+                    if (videoTrack.readyState === 'ended') {
+                        console.log('轨道错误后尝试重新启动');
+                        stopCamera();
+                        setTimeout(startCamera, 2000);
+                    }
+                }, 1000);
+            });
+            
+            // 监听轨道静音状态变化 - 不自动停止
+            videoTrack.addEventListener('mute', () => {
+                console.log('视频轨道被静音');
+                // 不自动停止，只是记录
+            });
+            
+            // 监听轨道取消静音
+            videoTrack.addEventListener('unmute', () => {
+                console.log('视频轨道取消静音');
+            });
+        }
+        
+        // 监听视频元素事件
+        video.addEventListener('error', (error) => {
+            console.error('视频播放错误:', error);
+            // 不立即停止，先尝试恢复
+            setTimeout(() => {
+                if (video.error && video.error.code !== 0) {
+                    console.log('视频错误持续，尝试重新启动');
+                    stopCamera();
+                    setTimeout(startCamera, 2000);
+                }
+            }, 2000);
+        });
+        
+        video.addEventListener('pause', () => {
+            console.log('视频暂停');
+            // 自动恢复播放
+            setTimeout(() => {
+                if (video.paused && cameraStream) {
+                    video.play().catch(e => console.log('自动恢复播放失败:', e));
+                }
+            }, 1000);
+        });
+        
+        video.addEventListener('play', () => {
+            console.log('视频播放');
+        });
+        
+        // 定期检查摄像头状态 - 降低检查频率，避免误判
+        cameraHealthCheck = setInterval(() => {
+            if (cameraStream) {
+                const tracks = cameraStream.getVideoTracks();
+                if (tracks.length === 0) {
+                    console.log('摄像头健康检查失败：无视频轨道');
+                    stopCamera();
+                } else if (tracks[0].readyState === 'ended') {
+                    console.log('摄像头健康检查失败：轨道已结束');
+                    // 尝试重新启动而不是直接停止
+                    setTimeout(() => {
+                        if (cameraStream && cameraStream.getVideoTracks().length > 0) {
+                            const track = cameraStream.getVideoTracks()[0];
+                            if (track.readyState === 'ended') {
+                                console.log('尝试重新启动摄像头');
+                                stopCamera();
+                                setTimeout(startCamera, 1000);
+                            }
+                        }
+                    }, 2000);
+                }
+            }
+        }, 10000); // 每10秒检查一次，降低检查频率
+        
+    } catch (error) {
+        console.error('摄像头启动失败:', error);
+        alert('摄像头启动失败: ' + error.message);
+        updateCameraStatus('启动失败', 'danger');
+    }
+}
+
+// 停止摄像头
+function stopCamera() {
+    // 清理健康检查定时器
+    if (cameraHealthCheck) {
+        clearInterval(cameraHealthCheck);
+        cameraHealthCheck = null;
+    }
+    
+    if (cameraStream) {
+        // 停止所有轨道
+        cameraStream.getTracks().forEach(track => track.stop());
+        cameraStream = null;
+    }
+    
+    const video = document.getElementById('cameraVideo');
+    const placeholder = document.getElementById('cameraPlaceholder');
+    
+    // 隐藏视频流
+    video.style.display = 'none';
+    placeholder.style.display = 'block';
+    
+    // 更新状态
+    updateCameraStatus('已停止', 'secondary');
+    updateCameraResolution('-', '-');
+    updateCameraFPS('-');
+    updateCameraRuntime('-');
+    
+    // 停止计算
+    stopFPSCalculation();
+    stopRuntimeCalculation();
+    
+    // 更新按钮状态
+    document.getElementById('startCameraBtn').disabled = false;
+    document.getElementById('stopCameraBtn').disabled = true;
+    document.getElementById('captureBtn').disabled = true;
+    
+    console.log('摄像头已停止');
+}
+
+// 拍照功能
+function capturePhoto() {
+    if (!cameraStream) {
+        alert('请先启动摄像头');
+        return;
+    }
+    
+    const video = document.getElementById('cameraVideo');
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // 设置画布尺寸
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    // 绘制当前帧
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    // 转换为图片
+    const dataURL = canvas.toDataURL('image/jpeg', 0.8);
+    
+    // 创建下载链接
+    const link = document.createElement('a');
+    link.download = `camera_capture_${new Date().getTime()}.jpg`;
+    link.href = dataURL;
+    link.click();
+    
+    // 添加到最近拍照
+    addRecentPhoto(dataURL);
+    
+    console.log('拍照完成');
+}
+
+// 更新摄像头状态
+function updateCameraStatus(status, type) {
+    const statusElement = document.getElementById('cameraStatus');
+    statusElement.textContent = status;
+    statusElement.className = `text-${type}`;
+}
+
+// 更新分辨率
+function updateCameraResolution(width, height) {
+    const resolutionElement = document.getElementById('cameraResolution');
+    if (width === '-' || height === '-') {
+        resolutionElement.textContent = '-';
+    } else {
+        resolutionElement.textContent = `${width}x${height}`;
+    }
+}
+
+// 启动FPS计算
+function startFPSCalculation() {
+    frameCount = 0;
+    fpsInterval = setInterval(() => {
+        const fps = frameCount;
+        updateCameraFPS(fps);
+        frameCount = 0;
+    }, 1000);
+    
+    // 监听视频帧来计算FPS
+    const video = document.getElementById('cameraVideo');
+    video.addEventListener('timeupdate', () => {
+        frameCount++;
+    });
+}
+
+// 停止FPS计算
+function stopFPSCalculation() {
+    if (fpsInterval) {
+        clearInterval(fpsInterval);
+        fpsInterval = null;
+    }
+}
+
+// 更新FPS
+function updateCameraFPS(fps) {
+    const fpsElement = document.getElementById('cameraFPS');
+    fpsElement.textContent = fps === '-' ? '-' : `${fps} FPS`;
+}
+
+// 启动运行时间计算
+function startRuntimeCalculation() {
+    runtimeInterval = setInterval(() => {
+        if (cameraStartTime) {
+            const now = new Date();
+            const diff = Math.floor((now - cameraStartTime) / 1000);
+            const minutes = Math.floor(diff / 60);
+            const seconds = diff % 60;
+            updateCameraRuntime(`${minutes}:${seconds.toString().padStart(2, '0')}`);
+        }
+    }, 1000);
+}
+
+// 停止运行时间计算
+function stopRuntimeCalculation() {
+    if (runtimeInterval) {
+        clearInterval(runtimeInterval);
+        runtimeInterval = null;
+    }
+}
+
+// 更新运行时间
+function updateCameraRuntime(runtime) {
+    const runtimeElement = document.getElementById('cameraRuntime');
+    runtimeElement.textContent = runtime;
+}
+
+// 添加最近拍照
+function addRecentPhoto(dataURL) {
+    const recentPhotos = document.getElementById('recentPhotos');
+    const photoItem = document.createElement('div');
+    photoItem.className = 'photo-item mb-2';
+    photoItem.innerHTML = `
+        <img src="${dataURL}" class="img-thumbnail" style="width: 60px; height: 45px; object-fit: cover;">
+        <small class="text-muted d-block">${new Date().toLocaleTimeString()}</small>
+    `;
+    
+    // 如果超过5张，移除最旧的
+    const photos = recentPhotos.querySelectorAll('.photo-item');
+    if (photos.length >= 5) {
+        photos[0].remove();
+    }
+    
+    // 如果之前显示"暂无拍照记录"，移除它
+    const noPhotos = recentPhotos.querySelector('.text-muted.small');
+    if (noPhotos && noPhotos.textContent.includes('暂无拍照记录')) {
+        noPhotos.remove();
+    }
+    
+    recentPhotos.appendChild(photoItem);
+}
+
+// 检查AI系统状态
+function checkAISystemStatus() {
+    fetch('{{ ai_system_url }}/status')
+        .then(response => response.json())
+        .then(data => {
+            console.log('AI系统状态:', data);
+        })
+        .catch(error => {
+            console.error('无法连接到AI系统:', error);
+        });
+}
+
+// 页面加载完成后开始自动刷新
+document.addEventListener('DOMContentLoaded', function() {
+    startAutoRefresh();
+    checkAISystemStatus();
+});
+
+// 页面卸载时停止自动刷新和摄像头
+window.addEventListener('beforeunload', function() {
+    stopAutoRefresh();
+    stopCamera();
+});
+</script>
+
+<style>
+.monitoring-placeholder {
+    border: 2px dashed #dee2e6;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+}
+
+.camera-placeholder {
+    border: 2px dashed #dee2e6;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+    min-height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.camera-container {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #000;
+}
+
+#cameraVideo {
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+}
+
+.monitoring-info {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    height: 100%;
+}
+
+.info-item {
+    margin-bottom: 10px;
+    padding: 5px 0;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.info-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.recent-photos {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.photo-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 5px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.photo-item:hover {
+    background-color: #e9ecef;
+}
+
+.photo-item img {
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.photo-item small {
+    flex: 1;
+}
+
+.badge {
+    font-size: 0.75em;
+}
+
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.btn-group .btn {
+    margin-right: 5px;
+}
+
+.btn-group .btn:last-child {
+    margin-right: 0;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .camera-container {
+        margin-bottom: 20px;
+    }
+    
+    .monitoring-info {
+        margin-top: 20px;
+    }
+    
+    .btn-group {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .btn-group .btn {
+        margin-right: 0;
+        margin-bottom: 5px;
+    }
+    
+    .btn-group .btn:last-child {
+        margin-bottom: 0;
+    }
+}
+</style>
+{% endblock %}

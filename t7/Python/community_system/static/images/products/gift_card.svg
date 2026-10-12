@@ -1,0 +1,6 @@
+<svg width="300" height="300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="300" height="300" fill="#fff8e1"/>
+  <rect x="50" y="120" width="200" height="120" rx="10" fill="#ffc107"/>
+  <text x="150" y="175" text-anchor="middle" font-family="Arial" font-size="20" fill="white">购物卡</text>
+  <text x="150" y="200" text-anchor="middle" font-family="Arial" font-size="16" fill="white">100元</text>
+</svg>

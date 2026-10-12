@@ -1,0 +1,189 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}提交举报 - 小区管理系统{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- 页面头部 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <div class="card-body py-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="mb-2">
+                                <i class="fas fa-shield-alt me-2"></i>
+                                提交举报信息
+                            </h2>
+                            <p class="mb-0 opacity-75">请如实填写举报信息，我们将认真处理每一份举报</p>
+                        </div>
+                        <a href="{% url 'reports_list' %}" class="btn btn-light btn-lg shadow-sm">
+                            <i class="fas fa-arrow-left me-2"></i> 返回列表
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header border-0 py-3" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
+                    <h5 class="mb-0 text-primary">
+                        <i class="fas fa-edit me-2"></i>
+                        举报信息表单
+                    </h5>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="mb-4">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-tag text-primary me-2"></i>
+                                <label for="report_type" class="form-label mb-0 fw-semibold">举报类型 <span class="text-danger">*</span></label>
+                            </div>
+                            <input type="text" class="form-control form-control-lg border-2" id="report_type" name="report_type" 
+                                   placeholder="请输入举报类型，如：破坏环境卫生、扰乱公共秩序、公共安全隐患等" 
+                                   style="border-radius: 10px; transition: all 0.3s ease;" required>
+                            <div class="form-text mt-2">
+                                <i class="fas fa-info-circle text-muted me-1"></i>
+                                请准确描述举报类型，便于我们快速分类处理
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-comment-alt text-primary me-2"></i>
+                                <label for="reason" class="form-label mb-0 fw-semibold">举报原因 <span class="text-danger">*</span></label>
+                            </div>
+                            <textarea class="form-control border-2" id="reason" name="reason" rows="5" 
+                                      placeholder="请详细描述举报原因，包括时间、地点、具体情况等..." 
+                                      style="border-radius: 10px; transition: all 0.3s ease; resize: vertical;" required></textarea>
+                            <div class="form-text mt-2">
+                                <i class="fas fa-lightbulb text-muted me-1"></i>
+                                详细的描述有助于我们更好地了解情况并及时处理
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-video text-primary me-2"></i>
+                                <label for="video_file" class="form-label mb-0 fw-semibold">相关视频（可选）</label>
+                            </div>
+                            <div class="position-relative">
+                                <input type="file" class="form-control form-control-lg border-2" id="video_file" name="video_file" 
+                                       accept="video/mp4,video/avi,video/mov,video/wmv,video/flv,video/webm"
+                                       style="border-radius: 10px; transition: all 0.3s ease;">
+                                <div class="position-absolute top-50 end-0 translate-middle-y me-3">
+                                    <i class="fas fa-upload text-muted"></i>
+                                </div>
+                            </div>
+                            <div class="form-text mt-2">
+                                <i class="fas fa-file-video text-muted me-1"></i>
+                                支持 MP4, AVI, MOV, WMV, FLV, WEBM 格式，最大 50MB
+                            </div>
+                        </div>
+
+                        <div class="d-grid mt-4">
+                            <button type="submit" class="btn btn-lg shadow-sm" 
+                                    style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; padding: 12px 0;">
+                                <i class="fas fa-paper-plane me-2"></i> 提交举报信息
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <!-- 举报须知 -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header border-0 py-3" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white;">
+                    <h5 class="mb-0 fw-semibold">
+                        <i class="fas fa-info-circle me-2"></i>
+                        举报须知
+                    </h5>
+                </div>
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-start mb-3">
+                        <div class="flex-shrink-0">
+                            <div class="d-flex align-items-center justify-content-center rounded-circle" 
+                                 style="width: 40px; height: 40px; background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">
+                                <i class="fas fa-check text-white"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="mb-1 text-primary">如实填写</h6>
+                            <p class="mb-0 text-muted small">请如实填写举报信息，确保内容真实有效</p>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex align-items-start mb-3">
+                        <div class="flex-shrink-0">
+                            <div class="d-flex align-items-center justify-content-center rounded-circle" 
+                                 style="width: 40px; height: 40px; background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);">
+                                <i class="fas fa-video text-white"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="mb-1 text-primary">提供证据</h6>
+                            <p class="mb-0 text-muted small">提供相关视频证据有助于快速处理</p>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex align-items-start mb-3">
+                        <div class="flex-shrink-0">
+                            <div class="d-flex align-items-center justify-content-center rounded-circle" 
+                                 style="width: 40px; height: 40px; background: linear-gradient(135deg, #ffc107 0%, #ff8c00 100%);">
+                                <i class="fas fa-clock text-white"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="mb-1 text-primary">及时处理</h6>
+                            <p class="mb-0 text-muted small">我们会在24小时内开始处理您的举报</p>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex align-items-start">
+                        <div class="flex-shrink-0">
+                            <div class="d-flex align-items-center justify-content-center rounded-circle" 
+                                 style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                                <i class="fas fa-bell text-white"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="mb-1 text-primary">结果通知</h6>
+                            <p class="mb-0 text-muted small">处理结果会通过系统通知告知您</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 联系方式 -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header border-0 py-3" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white;">
+                    <h5 class="mb-0 fw-semibold">
+                        <i class="fas fa-phone me-2"></i>
+                        紧急联系
+                    </h5>
+                </div>
+                <div class="card-body p-4 text-center">
+                    <div class="mb-3">
+                        <i class="fas fa-exclamation-triangle fa-2x" style="color: #dc3545;"></i>
+                    </div>
+                    <h6 class="text-primary mb-2">遇到紧急情况？</h6>
+                    <p class="text-muted small mb-3">如遇紧急情况请直接拨打</p>
+                    <div class="d-grid">
+                        <a href="tel:110" class="btn btn-outline-danger">
+                            <i class="fas fa-phone me-2"></i>18487400201 小区安保电话 
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

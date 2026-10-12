@@ -1,0 +1,213 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}个人资料 - 小区管理系统{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-lg-8 offset-lg-2">
+            <div class="card">
+                <div class="card-header">
+                    <h4>
+                        <i class="fas fa-user-edit text-primary"></i> 个人资料
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="username" class="form-label">姓名 *</label>
+                                <input type="text" class="form-control" id="username" name="username" 
+                                       value="{{ user.username }}" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="account" class="form-label">账号</label>
+                                <input type="text" class="form-control" id="account" name="account" 
+                                       value="{{ user.account }}" readonly>
+                                <div class="form-text">账号不可修改</div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="nickname" class="form-label">昵称</label>
+                                <input type="text" class="form-control" id="nickname" name="nickname" 
+                                       value="{{ user.nickname|default:'' }}">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="age" class="form-label">年龄</label>
+                                <input type="number" class="form-control" id="age" name="age" 
+                                       value="{{ user.age|default:'' }}" min="1" max="120">
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="email" class="form-label">邮箱</label>
+                                <input type="email" class="form-control" id="email" name="email" 
+                                       value="{{ user.email|default:'' }}">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="phone" class="form-label">手机号码</label>
+                                <input type="tel" class="form-control" id="phone" name="phone" 
+                                       value="{{ user.phone|default:'' }}">
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="address" class="form-label">用户地址</label>
+                                <input type="text" class="form-control" id="address" name="address" 
+                                       value="{{ user.address|default:'' }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">当前积分</label>
+                                <input type="text" class="form-control" value="{{ user.points }}" readonly>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">注册时间</label>
+                                <input type="text" class="form-control" value="{{ user.created_at|date:'Y年m月d日 H:i' }}" readonly>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">最后更新</label>
+                                <input type="text" class="form-control" value="{{ user.updated_at|date:'Y年m月d日 H:i' }}" readonly>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'home' %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> 返回首页
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> 保存修改
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 统计信息 -->
+            <div class="card mt-4">
+                <div class="card-header bg-gradient text-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar"></i> 我的统计</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="stat-item">
+                                <i class="fas fa-coins fa-2x text-warning mb-2"></i>
+                                <h4 class="text-warning">{{ user.points }}</h4>
+                                <p class="text-muted">当前积分</p>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            {% if total_orders > 0 %}
+                            <a href="{% url 'my_orders' %}" class="stat-item-link">
+                                <div class="stat-item stat-item-clickable">
+                                    <i class="fas fa-shopping-cart fa-2x text-success mb-2"></i>
+                                    <h4 class="text-success">{{ total_orders }}</h4>
+                                    <p class="text-muted">订单数量</p>
+                                </div>
+                            </a>
+                            {% else %}
+                            <div class="stat-item">
+                                <i class="fas fa-shopping-cart fa-2x text-success mb-2"></i>
+                                <h4 class="text-success">{{ total_orders }}</h4>
+                                <p class="text-muted">订单数量</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            {% if total_feedbacks > 0 %}
+                            <a href="{% url 'feedbacks_list' %}" class="stat-item-link">
+                                <div class="stat-item stat-item-clickable">
+                                    <i class="fas fa-comments fa-2x text-info mb-2"></i>
+                                    <h4 class="text-info">{{ total_feedbacks }}</h4>
+                                    <p class="text-muted">反馈次数</p>
+                                </div>
+                            </a>
+                            {% else %}
+                            <div class="stat-item">
+                                <i class="fas fa-comments fa-2x text-info mb-2"></i>
+                                <h4 class="text-info">{{ total_feedbacks }}</h4>
+                                <p class="text-muted">反馈次数</p>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.stat-item {
+    padding: 20px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #fff, #f8f9fa);
+    margin-bottom: 20px;
+    border: 1px solid #e9ecef;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    transition: left 0.6s;
+}
+
+.stat-item:hover::before {
+    left: 100%;
+}
+
+.stat-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    background: linear-gradient(135deg, #fff, #f1f3f4);
+}
+
+.bg-gradient {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.stat-item .btn {
+    font-size: 0.8rem;
+    padding: 0.25rem 0.75rem;
+}
+
+.stat-item-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
+.stat-item-link:hover {
+    text-decoration: none;
+    color: inherit;
+}
+
+.stat-item-clickable {
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.stat-item-clickable:hover {
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+}
+</style>
+{% endblock %}

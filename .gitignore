@@ -1,0 +1,46 @@
+# Private configuration and runtime state
+.env
+.env.*
+!.env.example
+api_keys.local.json
+settings.local.json
+.windows/
+deploy/secrets/
+deploy/input/
+secrets/
+*admin-login.txt
+
+# Local data, recordings and archives
+*.sqlite3
+*.sqlite3-*
+*.db
+*.sql
+*.log
+*.mp4
+*.avi
+*.mov
+*.zip
+*.pem
+*.key
+*.pfx
+*.p12
+dist/
+media/
+archive/
+video_warning/
+static/files/
+static/imgs/
+static/video/
+video_histroy_info.txt
+
+# Tooling and dependencies
+.idea/
+.vscode/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+node_modules/
+.pytest_cache/
+.DS_Store
+Thumbs.db

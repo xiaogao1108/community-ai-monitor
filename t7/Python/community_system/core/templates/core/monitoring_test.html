@@ -1,0 +1,43 @@
+{% extends 'core/base.html' %}
+
+{% block title %}监控测试页面{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h2>监控测试页面</h2>
+    <p>这是一个测试页面，用于验证监控功能是否正常工作。</p>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>监控点状态</h5>
+                </div>
+                <div class="card-body">
+                    <p>监控点数量: {{ monitoring_points|length }}</p>
+                    {% for point in monitoring_points %}
+                    <div class="mb-2">
+                        <strong>{{ point.name }}</strong> - {{ point.location }}
+                        <span class="badge {% if point.status == 'online' %}badge-success{% else %}badge-danger{% endif %}">
+                            {{ point.status }}
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>系统状态</h5>
+                </div>
+                <div class="card-body">
+                    <p>异常记录数量: {{ recent_abnormal|length }}</p>
+                    <p>举报信息数量: {{ recent_reports|length }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

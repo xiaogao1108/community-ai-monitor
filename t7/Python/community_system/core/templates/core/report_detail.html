@@ -1,0 +1,114 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}举报详情 - 小区管理系统{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>
+                    <i class="fas fa-flag text-danger"></i>
+                    举报详情
+                </h2>
+                <a href="{% url 'reports_list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> 返回列表
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- 举报信息 -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">举报信息</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>举报ID:</strong> {{ report.report_id }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>举报类型:</strong> 
+                            <span class="badge badge-warning">{{ report.report_type }}</span>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>举报人:</strong> {{ report.reporter.username }}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>举报时间:</strong> {{ report.created_at|date:"Y-m-d H:i:s" }}
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-12">
+                            <strong>举报原因:</strong>
+                            <p class="mt-2">{{ report.reason }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 举报视频 -->
+            {% if videos %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">举报视频</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for video in videos %}
+                        <div class="col-md-6 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <video controls class="w-100" style="max-height: 300px;">
+                                        <source src="{{ video.video_url }}" type="video/mp4">
+                                        您的浏览器不支持视频播放。
+                                    </video>
+                                    <p class="text-muted small mt-2">
+                                        创建时间: {{ video.created_at|date:"Y-m-d H:i:s" }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- 处理操作 -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">处理操作</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{% url 'process_report' report.report_id %}">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label">处理操作</label>
+                            <select name="action" class="form-select">
+                                <option value="">请选择操作</option>
+                                <option value="process">标记为处理中</option>
+                                <option value="resolve">标记为已解决</option>
+                                <option value="reject">标记为已拒绝</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-check"></i> 提交处理
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

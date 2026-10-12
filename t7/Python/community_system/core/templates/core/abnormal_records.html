@@ -1,0 +1,102 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}异常记录 - 小区管理系统{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <h2 class="mb-4">
+                <i class="fas fa-exclamation-triangle text-warning"></i> 异常记录
+            </h2>
+            <a href="{% url 'monitoring' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-video"></i> 前往实时监控
+            </a>
+        </div>
+    </div>
+
+    <!-- 异常记录网格 -->
+    <div class="row" id="abnormal-grid">
+        {% for rec in page_obj %}
+        <div class="col-md-4 col-sm-6 mb-4">
+            <div class="card h-100 shadow-sm abnormal-card">
+                <div class="position-relative">
+                    {% if rec.thumbnail_url %}
+                        <img src="{{ rec.thumbnail_url }}" class="card-img-top abnormal-thumb" alt="异常截图">
+                    {% else %}
+                        <div class="thumb-placeholder d-flex align-items-center justify-content-center">
+                            <i class="fas fa-image fa-2x text-muted"></i>
+                            <span class="ms-2 text-muted">暂无缩略图</span>
+                        </div>
+                    {% endif %}
+                    {% if rec.source %}
+                        <span class="badge bg-danger source-badge">{{ rec.source }}</span>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title mb-2">
+                        <span class="badge bg-danger">{{ rec.type }}</span>
+                    </h5>
+                    <p class="card-text text-muted mb-2" style="min-height: 2.5rem;">{{ rec.reason|truncatechars:60 }}</p>
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="fas fa-clock me-2 text-secondary"></i>
+                        <span>{{ rec.created_at|date:"Y-m-d H:i:s" }}</span>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-map-marker-alt me-2 text-secondary"></i>
+                        <span>{{ rec.location }}</span>
+                    </div>
+                    <p class="mb-0 text-muted small">可用视频：{{ rec.video_count }} 个</p>
+                </div>
+                <div class="card-footer d-flex justify-content-between align-items-center">
+                    <small class="text-muted">{{ rec.created_at|date:"Y-m-d H:i" }}</small>
+                    <div>
+                        {% if rec.video_count > 0 %}
+                        <a href="{{ rec.video_url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                            查看视频
+                        </a>
+                        {% else %}
+                        <span class="text-muted small me-2">无关联视频</span>
+                        {% endif %}
+                        <a href="{% url 'abnormal_detail' rec.id %}" class="btn btn-sm btn-primary">详情</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center text-muted py-5">
+            <i class="fas fa-inbox fa-2x mb-3"></i>
+            <p>暂无异常记录</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- 分页 -->
+    {% if page_obj.has_other_pages %}
+    <div class="row mt-3">
+        <div class="col-12">
+            <nav aria-label="异常记录分页">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item"><a class="page-link" href="?page=1">首页</a></li>
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">上一页</a></li>
+                    {% endif %}
+                    <li class="page-item active"><span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
+                    {% if page_obj.has_next %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">下一页</a></li>
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">末页</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.abnormal-card .abnormal-thumb { height: 200px; object-fit: cover; }
+.thumb-placeholder { height: 200px; background: #f8f9fa; }
+.source-badge { position: absolute; top: 10px; left: 10px; }
+</style>
+{% endblock %}
