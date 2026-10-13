@@ -152,7 +152,9 @@
     <!-- Custom JS -->
     <script src="{% static 'js/main.js' %}"></script>
     <script src="{% static 'js/announcement.js' %}"></script>
+    {% if request.session.user_type == 'admin' or request.session.user_type == 'staff' %}
     <script src="{% static 'js/alerts.js' %}"></script>
+    {% endif %}
     
     {% block extra_js %}{% endblock %}
 </body>

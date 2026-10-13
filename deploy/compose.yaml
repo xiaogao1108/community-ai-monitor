@@ -41,7 +41,9 @@ services:
       MEDIA_ROOT: /app/t7/front/public
       STATIC_ROOT: /data/static
       AI_INGEST_TOKEN_FILE: /run/secrets/ai_ingest_token
-    secrets: [django_secret_key, db_password, ai_ingest_token]
+      DEEPSEEK_API_KEY_FILE: /run/secrets/deepseek_api_key
+      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-flash}
+    secrets: [django_secret_key, db_password, ai_ingest_token, deepseek_api_key]
     volumes:
       - media_data:/app/t7/front/public
       - static_data:/data/static

@@ -1,0 +1,48 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% block title %}摄像头 AI 分析 - 小区管理系统{% endblock %}
+{% block content %}
+<div class="container py-4" id="camera-monitor" data-start-url="{% url 'camera_start' %}">
+    <h2>摄像头 AI 分析</h2>
+    <p class="text-muted">本机电脑、异地电脑或手机均可使用。每台设备需要在自己的浏览器里登录并主动开启。</p>
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <video id="camera-preview" autoplay muted playsinline class="w-100 bg-dark rounded" style="max-height:65vh;min-height:240px;object-fit:contain" aria-label="当前设备的摄像头预览"></video>
+            <div id="camera-status" class="alert alert-secondary mt-3" role="status" aria-live="polite">摄像头未开启，尚未发送画面。</div>
+            <div id="camera-result" class="alert alert-light border" role="status" aria-live="polite">尚无分析结果。</div>
+            <div id="camera-warning" class="alert alert-danger d-none" role="alert">
+                <strong>发现疑似异常，请及时查看现场</strong>
+                <p id="camera-warning-text" class="mb-2"></p>
+                <button id="camera-dismiss" class="btn btn-outline-danger btn-sm" type="button">我已看到提醒</button>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card"><div class="card-body">
+                {% csrf_token %}
+                <label for="camera-name" class="form-label">设备名称</label>
+                <input id="camera-name" class="form-control mb-3" maxlength="50" value="我的摄像头" placeholder="例如：客厅手机">
+                <label for="camera-facing" class="form-label">摄像头</label>
+                <select id="camera-facing" class="form-select mb-3">
+                    <option value="environment">后置摄像头 / 电脑默认摄像头</option>
+                    <option value="user">前置摄像头</option>
+                </select>
+                <div class="form-check mb-3">
+                    <input id="camera-consent" class="form-check-input" type="checkbox">
+                    <label for="camera-consent" class="form-check-label">我同意将此摄像头的抽样画面发送给 DeepSeek 分析，并让管理员查看产生的告警文字。</label>
+                </div>
+                <button id="camera-start" class="btn btn-primary w-100 mb-2" type="button">开启摄像头并分析</button>
+                <button id="camera-stop" class="btn btn-outline-danger w-100" type="button" disabled>停止摄像头和分析</button>
+                <p class="small text-muted mt-3 mb-0">每轮最多发送 3 张画面，间隔至少 15 秒；多人使用时会等待空闲。画面只在处理期间保存在本机内存中，本站不保存完整录像。调用模型会消耗本机管理员的 API 额度。</p>
+            </div></div>
+            <div class="small text-muted mt-3">
+                <p>请使用手机自带浏览器或电脑浏览器打开 HTTPS 网址，并允许摄像头权限。离开此页面、切换到后台或锁屏会停止，回来后需要重新点击开启。</p>
+                <p>疑似火灾、烟雾等会在当前页面提醒，并写入管理员的“异常记录”。这属于测试阶段的辅助识别，可能漏报或误报，不能替代消防报警器。</p>
+                {% if request.community_user.type == 'admin' or request.community_user.type == 'staff' %}
+                <a href="{% url 'abnormal_records_list' %}">查看所有设备的异常记录</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}<script src="{% static 'js/camera-monitor.js' %}"></script>{% endblock %}

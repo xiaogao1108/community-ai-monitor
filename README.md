@@ -30,10 +30,13 @@
 
 ```powershell
 python deploy/windows.py set-key
-python deploy/windows.py ai "D:\Videos\demo.mp4"
 ```
 
-AI 使用 DeepSeek API；调用会消耗账户额度，实际视频源和识别效果需要自行验证。网页启动不会自动开启摄像头或启动付费分析。密钥保存在本机私有目录，不应提交到 GitHub。
+本机或异地电脑、手机登录网站后，进入“实时监控”，勾选同意发送画面，点击“开启摄像头并分析”，允许摄像头权限即可。不需要另开 AI 窗口。疑似火灾、烟雾等会提醒当前设备，并进入管理员的异常记录。每台设备独立授权、独立启停；切换后台或锁屏会停止，回来需重新开启。
+
+AI 使用 DeepSeek API；调用会消耗账户额度。登录不会自动开启摄像头或付费分析。抽样画面不在本站保存为录像，告警只保存文字；辅助识别不能替代消防报警器。密钥保存在本机私有目录，不应提交到 GitHub。每账号最多八个活跃摄像头会话，当前 Windows 运行方式同时分析两组画面，其余设备自动等待。
+
+如需分析视频文件，可另行运行 `python deploy/windows.py ai "D:\Videos\demo.mp4"`。详细操作见 [Windows 部署](deploy/WINDOWS.md)，测试范围见 [摄像头验收](deploy/CAMERA-VERIFICATION.md)。
 
 ## 验证与限制
 

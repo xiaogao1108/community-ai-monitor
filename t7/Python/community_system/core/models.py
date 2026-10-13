@@ -1,4 +1,6 @@
 # core/models.py
+import uuid
+
 from django.db import models
 from django.core.validators import MinLengthValidator
 
@@ -251,6 +253,28 @@ class AbnormalRecord(models.Model):
 
     def __str__(self):
         return f"异常记录 - {self.abnormal_type}"
+
+
+class CameraSession(models.Model):
+    """用户主动开启的浏览器摄像头；画面仅在分析期间保存在内存中。"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    browser_session = models.CharField(max_length=64)
+    name = models.CharField(max_length=50)
+    active = models.BooleanField(default=True)
+    last_seen = models.DateTimeField()
+    started_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    job_id = models.CharField(max_length=32, blank=True)
+    status = models.CharField(max_length=16, default='ready')
+    category = models.CharField(max_length=16, blank=True)
+    reason = models.CharField(max_length=800, blank=True)
+    last_alert_at = models.DateTimeField(null=True, blank=True)
+    last_alert_category = models.CharField(max_length=16, blank=True)
+
+    class Meta:
+        db_table = 'camera_sessions'
+        indexes = [models.Index(fields=['active', 'last_seen'], name='idx_camera_active_seen')]
 
 
 class AbnormalVideo(models.Model):

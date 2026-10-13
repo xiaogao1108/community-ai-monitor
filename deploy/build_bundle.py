@@ -26,7 +26,7 @@ def deployment_files(root):
         if path.is_file() and not (set(relative.parts) & EXCLUDED_PARTS) and path.name not in PRIVATE_NAMES:
             if path.suffix in {'.py', '.sh', '.cmd', '.yaml', '.md'} or path.name in {
                 'Caddyfile', 'Dockerfile.web', 'Dockerfile.ai', '.env.example'
-            } or path.name == 'requirements.validation.txt':
+            } or path.name in {'requirements.validation.txt', 'test_camera_browser.js'}:
                 selected.append(path)
     for folder in ('community_project', 'core'):
         for path in (root / WEB / folder).rglob('*'):

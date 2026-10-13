@@ -97,6 +97,10 @@ def user_register(request):
 
 def user_logout(request):
     """用户登出"""
+    if request.session.session_key:
+        from .camera_service import browser_id
+        from .models import CameraSession
+        CameraSession.objects.filter(browser_session=browser_id(request)).update(active=False, status='stopped', job_id='')
     request.session.flush()
     messages.success(request, '已成功登出')
     return redirect('home')
@@ -566,23 +570,10 @@ def abnormal_records_list(request):
 # 通知功能已移除，使用处理表替代
 
 
-@community_access('admin', 'staff')
+@community_access()
 def monitoring(request):
-    """实时监控"""
-    # 模拟监控点数据
-    monitoring_points = [
-        {'id': 1, 'name': '小区大门', 'location': '主入口', 'status': 'online'},
-        {'id': 2, 'name': '停车场A区', 'location': '地下停车场', 'status': 'online'},
-        {'id': 3, 'name': '儿童游乐区', 'location': '中心花园', 'status': 'online'},
-        {'id': 4, 'name': '健身区域', 'location': '户外健身区', 'status': 'offline'},
-        {'id': 5, 'name': '小区后门', 'location': '后门出入口', 'status': 'online'},
-        {'id': 6, 'name': '垃圾回收站', 'location': '生活区东侧', 'status': 'online'},
-    ]
-    
-    context = {
-        'monitoring_points': monitoring_points
-    }
-    return render(request, 'core/monitoring.html', context)
+    """每位登录用户只操作当前设备主动授权的摄像头。"""
+    return render(request, 'core/camera_monitoring.html')
 
 @community_access('admin', 'staff', api=True)
 def api_latest_abnormal(request):

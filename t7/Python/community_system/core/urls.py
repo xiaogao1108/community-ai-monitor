@@ -4,6 +4,7 @@ from . import product_api_views
 from . import file_upload_views
 from . import abnormal_views
 from . import media_views
+from . import camera_views
 
 urlpatterns = [
     path('media/<path:path>', media_views.protected_media, name='protected_media'),
@@ -56,6 +57,10 @@ urlpatterns = [
     
     # 监控系统
     path('monitoring/', views.monitoring, name='monitoring'),
+    path('api/cameras/start/', camera_views.start, name='camera_start'),
+    path('api/cameras/<uuid:camera_id>/frames/', camera_views.frames),
+    path('api/cameras/<uuid:camera_id>/status/', camera_views.status),
+    path('api/cameras/<uuid:camera_id>/stop/', camera_views.stop),
     path('camera/', views.camera, name='camera')
     
     # 实时预警API

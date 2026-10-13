@@ -112,11 +112,12 @@ class DeploymentSecurityTests(TestCase):
             'file': valid, 'type': 'product',
         }).status_code, 403)
 
-    def test_monitoring_and_alerts_require_staff(self):
+    def test_own_camera_open_to_residents_but_global_alerts_require_staff(self):
         self.assertEqual(self.client.get('/monitoring/').status_code, 302)
         self.assertEqual(self.client.get('/api/alerts/latest/').status_code, 401)
         self.login_as(self.resident)
-        for url in ['/monitoring/', '/abnormal-records/', '/abnormal-records/1/', '/api/alerts/latest/']:
+        self.assertContains(self.client.get('/monitoring/'), '开启摄像头并分析')
+        for url in ['/abnormal-records/', '/abnormal-records/1/', '/api/alerts/latest/']:
             self.assertEqual(self.client.get(url).status_code, 403)
         self.login_as(self.admin)
         self.assertEqual(self.client.get('/monitoring/').status_code, 200)
