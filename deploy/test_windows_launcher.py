@@ -82,6 +82,14 @@ class WindowsLauncherTests(unittest.TestCase):
         for line in ('https://admin.localhost.run/', '{}', '[]', 'invalid json'):
             self.assertIsNone(launcher.localhost_url(line))
 
+    def test_cloudflare_detects_server_deleted_tunnel(self):
+        self.assertEqual(launcher.cloudflare_event('ERR Register tunnel error="Unauthorized: Tunnel not found"'),
+                         {'error': 'tunnel_not_found'})
+        self.assertEqual(launcher.cloudflare_event('| https://example.trycloudflare.com |'),
+                         'https://example.trycloudflare.com')
+        for line in ('ERR dial tcp: i/o timeout', 'https://example.trycloudflare.com.evil.test'):
+            self.assertIsNone(launcher.cloudflare_event(line))
+
     def test_localhost_rejects_unrelated_domains_and_events(self):
         for url in ('https://abc.lhr.life.evil.test', 'https://example.org', 'http://abc.lhr.life'):
             event = {'type': 'v1.tcpip_forward.register.accepted', 'data': url}

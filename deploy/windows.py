@@ -229,6 +229,13 @@ def start(local=False):
         stop_file.unlink(missing_ok=True)
 
 
+def cloudflare_event(line):
+    if 'Unauthorized: Tunnel not found' in line:
+        return {'error': 'tunnel_not_found'}
+    match = re.search(r'https://[a-z0-9-]+\.trycloudflare\.com(?=[\s/|]|$)', line)
+    return match.group() if match else None
+
+
 def open_tunnel(tool, children, flags, updates=None, stopped=None):
     tunnel = subprocess.Popen([str(tool), 'tunnel', '--no-autoupdate', '--url', f'http://127.0.0.1:{PORT}',
                                '--protocol', 'http2'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
@@ -240,9 +247,9 @@ def open_tunnel(tool, children, flags, updates=None, stopped=None):
             for line in tunnel.stdout:
                 log.write(line)
                 log.flush()
-                match = re.search(r'https://[a-z0-9-]+\.trycloudflare\.com\b', line)
-                if match:
-                    found.put(match.group())
+                event = cloudflare_event(line)
+                if event:
+                    found.put(event)
     threading.Thread(target=read_tunnel, daemon=True).start()
     public_url = None
     for _ in range(90):
@@ -252,6 +259,8 @@ def open_tunnel(tool, children, flags, updates=None, stopped=None):
             raise RuntimeError('公网隧道未能建立，详情见 .windows/logs/tunnel.log')
         try:
             public_url = found.get(timeout=1)
+            if isinstance(public_url, dict):
+                raise RuntimeError('Cloudflare 临时隧道已失效，需要重新建立连接')
             break
         except queue.Empty:
             pass

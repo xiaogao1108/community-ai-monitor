@@ -66,15 +66,28 @@ def main():
                     env=environment(), stdin=subprocess.DEVNULL, stdout=output, stderr=errors,
                     creationflags=subprocess.CREATE_NO_WINDOW | subprocess.CREATE_NEW_PROCESS_GROUP,
                 )
-        for _ in range(180):
+        last_status = None
+        for _ in range(360):
             url = current_url()
             if url:
                 break
+            state = service_state()
+            status = state.get('status')
+            if status != last_status:
+                messages = {'reconnecting': '公网连接正在恢复，将自动获取新网址……',
+                            'checking': '已获取网址，正在检查公网访问……',
+                            'degraded': '公网暂未连通，后台正在重试……'}
+                if status in messages:
+                    print(messages[status], flush=True)
+                last_status = status
             if process is not None and process.poll() is not None:
                 raise RuntimeError('分享启动失败，请查看 .windows/logs/share-launcher-error.log 和隧道日志。')
             time.sleep(0.5)
         else:
-            raise RuntimeError('公网连续检查尚未通过，后台会继续检测。请查看 .windows/公网访问地址.txt 与 logs，不要把当前状态视为已稳定上线。')
+            state = service_state()
+            check = state.get('public_check') or {}
+            detail = state.get('message') or check.get('error') or str(check.get('http_status') or '连接超时')
+            raise RuntimeError('公网连接仍未恢复（' + detail + '）。后台会继续重试，请在网络恢复后再次双击；最新网址见 .windows/公网访问地址.txt。')
     webbrowser.open(url)
     print('分享网址：' + url)
     print('网址也保存在 .windows/公网访问地址.txt；可以关闭此窗口，电脑须保持开机联网。')

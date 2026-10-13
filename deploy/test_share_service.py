@@ -37,6 +37,30 @@ class ShareServiceTests(unittest.TestCase):
             self.assertFalse(self.service.apply_updates())
         restart.assert_not_called()
 
+    def test_expired_live_tunnel_is_retired_without_stopping_website(self):
+        tunnel = self.service.tunnel
+        web = Mock(pid=100)
+        self.service.web = web
+        self.service.children = [tunnel, web]
+        self.service.check = {'ok': True}
+        self.service.successes = 3
+        self.service.updates.put('https://obsolete.trycloudflare.com')
+        self.service.updates.put({'error': 'tunnel_not_found'})
+        self.service.updates.put('https://also-obsolete.trycloudflare.com')
+        with patch.object(share, 'stop_process') as stop, patch.object(self.service, 'start_web') as restart:
+            self.assertTrue(self.service.apply_updates())
+        stop.assert_called_once_with(tunnel)
+        restart.assert_not_called()
+        self.assertEqual(self.service.children, [web])
+        self.assertEqual(self.service.state, 'reconnecting')
+        self.assertIsNone(self.service.url)
+        self.assertIsNone(self.service.check)
+        self.assertEqual(self.service.successes, 0)
+        self.assertTrue(self.service.updates.empty())
+        self.assertGreater(self.service.retry_at, time.monotonic())
+        self.service.record_check('https://current.lhr.life', {'ok': True})
+        self.assertEqual(self.service.state, 'reconnecting')
+
     def test_three_successes_required_and_a_failure_revokes_healthy_state(self):
         result = {'ok': True, 'http_status': 200, 'checked_at': time.time()}
         for _ in range(2):

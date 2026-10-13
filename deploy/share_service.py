@@ -151,9 +151,25 @@ class ShareService:
         latest = None
         while True:
             try:
-                latest = self.updates.get_nowait()
+                event = self.updates.get_nowait()
             except queue.Empty:
                 break
+            if isinstance(event, dict) and event.get('error') == 'tunnel_not_found':
+                stop_process(self.tunnel)
+                if self.tunnel in self.children:
+                    self.children.remove(self.tunnel)
+                self.tunnel = None
+                self.updates = queue.Queue()
+                self.url = None
+                self.check = None
+                self.successes = 0
+                self.state = 'reconnecting'
+                self.retry_at = time.monotonic() + self.retry_delay
+                self.retry_delay = min(self.retry_delay * 2, 30)
+                self.publish('Cloudflare 临时隧道已失效，正在自动申请新网址')
+                return True
+            if isinstance(event, str):
+                latest = event
         if latest and latest != self.url:
             self.start_web(latest)
             return True
@@ -192,6 +208,8 @@ class ShareService:
                     if self.tunnel is not None:
                         if self.apply_updates():
                             next_check = 0
+                        if self.tunnel is None:
+                            continue
                         if self.web is None or self.web.poll() is not None:
                             self.state = 'degraded'
                             self.check = None
