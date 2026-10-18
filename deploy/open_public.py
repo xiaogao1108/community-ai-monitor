@@ -1,13 +1,14 @@
 """后台启动配置的公网分享，并打开通过健康检查的网址。"""
 
 import json
+import socket
 import subprocess
 import time
 import urllib.request
 import webbrowser
 
 from windows import PORT, PYTHON, ROOT, STATE, configuration, environment, install_tunnel, tunnel_tool_valid
-from share_service import ACTIVE
+from share_service import ACTIVE, exclusive_share
 
 
 def service_state():
@@ -38,6 +39,17 @@ def current_url():
         return None
 
 
+def share_is_stopped():
+    """状态文件可能跨重启残留，以进程锁和端口确认旧服务已经退出。"""
+    try:
+        with exclusive_share():
+            with socket.socket() as probe:
+                probe.bind(('127.0.0.1', PORT))
+        return True
+    except (OSError, RuntimeError):
+        return False
+
+
 def main():
     provider = configuration().get('provider', 'cloudflare')
     if provider == 'cloudflare' and not tunnel_tool_valid(STATE / 'tools/cloudflared.exe'):
@@ -46,12 +58,13 @@ def main():
     url = current_url()
     if not url:
         state = service_state()
-        active = state.get('provider') == provider and state.get('status') in ACTIVE and time.time() - state.get('updated_at', 0) < 120
+        active = (state.get('provider') == provider and state.get('status') in ACTIVE
+                  and time.time() - state.get('updated_at', 0) < 120 and not share_is_stopped())
         if not active and state.get('status') in ACTIVE:
             # 仅请求项目自己的 supervisor 退出，不按进程名停止其他服务。
             (STATE / ('stop-' + state['session'])).touch()
             for _ in range(40):
-                if service_state().get('status') not in ACTIVE:
+                if service_state().get('status') not in ACTIVE or share_is_stopped():
                     break
                 time.sleep(0.25)
             else:

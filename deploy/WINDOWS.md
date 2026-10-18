@@ -43,6 +43,8 @@ python deploy/windows.py stop
 
 如果 Cloudflare 返回 `Unauthorized: Tunnel not found`，说明临时隧道已被服务端移除，即使隧道进程仍在运行也无法继续使用。脚本会自动结束本次失效隧道、申请新网址并更新网站域名；不用重装项目或修改密钥。启动窗口最多等待三分钟，并显示连接恢复和检查进度；电脑休眠或断网后需要先恢复联网。
 
+电脑关机或进程意外结束后，状态文件可能仍显示旧网址。入口会同时检查本项目进程锁与网站端口；确认旧服务已退出后重新启动，不再要求已经不存在的旧进程回应停止。请用“打开网站.cmd”取得当前网址，不要长期收藏免费临时地址。
+
 维护人员可运行 `python deploy/verify_public.py`，连续检查健康接口、登录页、样式/脚本/字体、录像权限和 CSRF 拒绝行为；报告存入 `.windows/logs/public-verification-*.json`。默认直接连接公网，加 `--system-proxy` 可对比本机代理线路，不会修改系统代理设置。该检查不读取真实用户密码，也不能代替手机流量实测。连续三次健康检查只说明当时可达，不等于长期稳定性验收。
 
 Cloudflare Quick Tunnel 用于测试，免费网址会在重建隧道后变化，且没有持续可用性保证；参见 [官方说明](https://developers.cloudflare.com/tunnel/get-started/quick-tunnels/)。localhost.run 的兼容代码保留，但因实测间歇协议误标、手机无法打开，当前不作为默认线路。没有关闭 HTTPS 检查来掩盖线路故障。
