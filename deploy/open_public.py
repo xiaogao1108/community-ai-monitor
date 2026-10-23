@@ -52,6 +52,9 @@ def share_is_stopped():
 
 def main():
     provider = configuration().get('provider', 'cloudflare')
+    if provider == 'tailscale':
+        from tailscale_funnel import public_url
+        public_url()
     if provider == 'cloudflare' and not tunnel_tool_valid(STATE / 'tools/cloudflared.exe'):
         print('首次使用，正在下载 Cloudflare 官方隧道程序……', flush=True)
         install_tunnel()
@@ -80,19 +83,22 @@ def main():
                     creationflags=subprocess.CREATE_NO_WINDOW | subprocess.CREATE_NEW_PROCESS_GROUP,
                 )
         last_status = None
-        for _ in range(360):
+        wait_steps = 1320 if provider == 'tailscale' else 360
+        for step in range(wait_steps):
             url = current_url()
             if url:
                 break
             state = service_state()
             status = state.get('status')
             if status != last_status:
-                messages = {'reconnecting': '公网连接正在恢复，将自动获取新网址……',
+                messages = {'reconnecting': ('正在恢复固定网址连接……' if provider == 'tailscale' else '公网连接正在恢复，将自动获取新网址……'),
                             'checking': '已获取网址，正在检查公网访问……',
                             'degraded': '公网暂未连通，后台正在重试……'}
                 if status in messages:
                     print(messages[status], flush=True)
                 last_status = status
+            if provider == 'tailscale' and step % 60 == 0:
+                print(f'固定网址首次发布可能需要约 10 分钟，正在等待公网检查（已等待 {step // 2} 秒）……', flush=True)
             if process is not None and process.poll() is not None:
                 raise RuntimeError('分享启动失败，请查看 .windows/logs/share-launcher-error.log 和隧道日志。')
             time.sleep(0.5)

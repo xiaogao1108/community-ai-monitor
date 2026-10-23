@@ -62,7 +62,7 @@ def exclusive_share():
 
 class ShareService:
     def __init__(self, provider='localhost.run'):
-        if provider not in ('localhost.run', 'cloudflare'):
+        if provider not in ('localhost.run', 'cloudflare', 'tailscale'):
             raise ValueError('不支持的公网隧道服务')
         self.provider = provider
         self.session = secrets.token_hex(12)
@@ -90,7 +90,9 @@ class ShareService:
                 'public_check': self.check, 'message': message}
         write_json(STATE / 'service.json', data)
         if self.state == 'running':
-            text = self.url + '\n公网健康检查通过。电脑须保持开机联网，免费网址可能自动变化。\n'
+            note = ('固定网址；请保留 Tailscale 账号、设备和名称。' if self.provider == 'tailscale'
+                    else '免费网址可能自动变化。')
+            text = self.url + '\n公网健康检查通过。电脑须保持开机联网。' + note + '\n'
         elif self.state in ('checking', 'degraded') and self.url:
             text = self.url + '\n当前公网检查尚未通过，请勿视为已稳定上线。\n'
         else:
@@ -131,6 +133,9 @@ class ShareService:
             if self.provider == 'cloudflare':
                 url = open_tunnel(STATE / 'tools/cloudflared.exe', self.children, self.flags,
                                   self.updates, self.stop_file.exists)
+            elif self.provider == 'tailscale':
+                from tailscale_funnel import open_tunnel as open_funnel
+                url = open_funnel(self.children, self.flags, self.updates, self.stop_file.exists)
             else:
                 url = open_localhost_tunnel(self.children, self.flags, self.updates, self.stop_file.exists)
             self.tunnel = self.children[-1]
@@ -245,6 +250,9 @@ def run():
     provider = configuration().get('provider', 'cloudflare')
     if provider == 'cloudflare' and not tunnel_tool_valid(STATE / 'tools/cloudflared.exe'):
         raise RuntimeError('Cloudflare 程序缺失或损坏，请先运行 install-tunnel')
+    if provider == 'tailscale':
+        from tailscale_funnel import public_url
+        public_url()
     with exclusive_share():
         with socket.socket() as probe:
             probe.bind(('127.0.0.1', PORT))
